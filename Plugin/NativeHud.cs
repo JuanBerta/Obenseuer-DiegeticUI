@@ -13,6 +13,8 @@ namespace DiegeticUIMod
 	internal static class NativeHud
 	{
 		private static readonly Dictionary<Transform, Vector3> hidden = new Dictionary<Transform, Vector3>();
+		private static readonly List<ShowTime> clocks = new List<ShowTime>();
+		private static float nextClockScan;
 
 		internal static void Hide(bool needs, bool clock, bool money, bool hands, bool feed)
 		{
@@ -28,8 +30,18 @@ namespace DiegeticUIMod
 							if (bar != null) Zero(bar.transform);
 						}
 					}
-				if (clock && ShowTime.instance != null && Traverse.Create(ShowTime.instance).Field("timeMesh").GetValue<object>() == null)
-					Zero(ShowTime.instance.transform);
+				if (clock)
+				{
+					// every on-screen clock text (gameplay and menus); in-world clocks (timeMesh) stay
+					if (Time.unscaledTime >= nextClockScan)
+					{
+						nextClockScan = Time.unscaledTime + 2f;
+						clocks.Clear();
+						foreach (ShowTime st in UnityEngine.Object.FindObjectsOfType<ShowTime>(true))
+							if (st != null && Traverse.Create(st).Field("timeMesh").GetValue<object>() == null) clocks.Add(st);
+					}
+					foreach (ShowTime st in clocks) if (st != null) Zero(st.transform);
+				}
 				if (money && Money.instance != null)
 				{
 					var panels = Traverse.Create(Money.instance).Field("moneyPanels").GetValue<List<MoneyPanel>>();

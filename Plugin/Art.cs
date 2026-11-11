@@ -276,7 +276,7 @@ namespace DiegeticUIMod
 			if (len < 0.01f) return;
 			float ang = Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg;
 			Matrix4x4 m = GUI.matrix;
-			GUIUtility.RotateAroundPivot(ang, a);
+			GUI.matrix = m * RotationAbout(ang, a);
 			Rect(new Rect(a.x, a.y - width / 2f, len, width), c);
 			GUI.matrix = m;
 		}
@@ -299,11 +299,18 @@ namespace DiegeticUIMod
 			return new Vector2(Mathf.Cos(a) * r, -Mathf.Sin(a) * r);
 		}
 
+		// A rotation about a point in the HUD's own (virtual, unscaled) coordinates. GUIUtility.RotateAroundPivot
+		// takes its pivot in screen pixels, which lands in the wrong place once the HUD is scaled.
+		internal static Matrix4x4 RotationAbout(float degrees, Vector2 pivot)
+		{
+			return Matrix4x4.TRS(new Vector3(pivot.x, pivot.y, 0f), Quaternion.Euler(0f, 0f, degrees), Vector3.one) * Matrix4x4.TRS(new Vector3(-pivot.x, -pivot.y, 0f), Quaternion.identity, Vector3.one);
+		}
+
 		// Rotate everything drawn inside the using block.
 		internal struct Turn : IDisposable
 		{
 			private readonly Matrix4x4 saved;
-			internal Turn(float degrees, Vector2 pivot) { saved = GUI.matrix; if (Mathf.Abs(degrees) > 0.01f) GUIUtility.RotateAroundPivot(degrees, pivot); }
+			internal Turn(float degrees, Vector2 pivot) { saved = GUI.matrix; if (Mathf.Abs(degrees) > 0.01f) GUI.matrix = saved * RotationAbout(degrees, pivot); }
 			public void Dispose() { GUI.matrix = saved; }
 		}
 

@@ -26,7 +26,7 @@ namespace DiegeticUIMod
 				{
 					float gutter = vw / 2f + 547f;   // right edge of the game's inventory panel
 					float gx = gutter + Mathf.Max(16f, (vw - gutter - 300f) / 2f);
-					if (DiegeticPlugin.ShowWallet.Value) CompactWatchAndReceipt(new Vector2(gx, 18f));
+					if (DiegeticPlugin.ShowWallet.Value) CompactWatchAndReceipt(new Vector2(gx, 22f));
 					if (DiegeticPlugin.ShowNeeds.Value) Clipboard(new Rect(gx, 250f, 300f, 640f));
 				}
 				else
@@ -180,13 +180,16 @@ namespace DiegeticUIMod
 			Art.Rect(screen, on ? Art.Lcd : Art.LcdOff);
 			Art.Rect(new Rect(screen.x, screen.y, screen.width, 3f), new Color(0, 0, 0, 0.25f));
 			Color ghost = new Color(Art.LcdInk.r, Art.LcdInk.g, Art.LcdInk.b, on ? 0.08f : 0.12f);
-			float small = digitH * 0.26f;
+			float small = Mathf.Max(11f, screen.height * 0.17f);
 			if (on && GameData.HasCalendar && !string.IsNullOrEmpty(GameData.Weekday))
 			{
 				GUIStyle day = Art.Text(Art.ReceiptFont, Mathf.RoundToInt(small), TextAnchor.UpperCenter, true);
 				Art.Label(new Rect(screen.x, screen.y + 4f, screen.width, small + 4f), GameData.Weekday.ToUpperInvariant(), day, Art.LcdInk);
 			}
-			float width = digitH * 0.52f * 4f + digitH * 0.16f * 3f + digitH * 0.11f + digitH * 0.16f * 0.9f;
+			// fit the four digits and the colon inside the screen
+			const float perH = 0.52f * 4f + 0.16f * 3f + 0.11f + 0.16f * 0.9f;
+			digitH = Mathf.Min(digitH, screen.width * 0.86f / perH, screen.height * (on && GameData.HasCalendar ? 0.6f : 0.78f));
+			float width = digitH * perH;
 			Vector2 at = new Vector2(screen.center.x - width / 2f, screen.yMax - digitH - screen.height * 0.1f);
 			Art.LcdTime(at, digitH, on ? GameData.Hours : -1, GameData.Minutes, on ? Art.LcdInk : new Color(Art.LcdInk.r, Art.LcdInk.g, Art.LcdInk.b, 0.35f), ghost);
 		}
@@ -307,9 +310,13 @@ namespace DiegeticUIMod
 				Art.Circle(hole, 5f, new Color32(26, 23, 18, 255));
 				float x = holeRight ? r.x + 12f : r.x + 34f;
 				Art.Sprite(new Rect(x, r.y + 14f, 64f, 64f), h.Icon, Color.white);
-				float tx = x + 72f, tw = r.width - (tx - r.x) - (holeRight ? 30f : 8f);
-				GUIStyle name = Art.Text(Art.TypeFont, 12, TextAnchor.UpperLeft, false, true);
-				Art.Label(new Rect(tx, r.y + 12f, tw, 30f), h.Name.ToUpperInvariant(), name, Art.Ink);
+				float tx = x + 72f, tw = r.width - (tx - r.x) - (holeRight ? 30f : 10f);
+				// the name on one line, shrunk to fit
+				string title = h.Name.ToUpperInvariant();
+				int size = 12;
+				GUIStyle name = Art.Text(Art.TypeFont, size, TextAnchor.UpperLeft);
+				while (size > 8 && Art.Measure(title, name).x > tw) name = Art.Text(Art.TypeFont, --size, TextAnchor.UpperLeft);
+				Art.Label(new Rect(tx, r.y + 16f, tw, 16f), title, name, Art.Ink);
 				bool low = h.Fill >= 0f && h.Fill < 0.2f;
 				if (h.Fill >= 0f)
 				{
@@ -318,20 +325,20 @@ namespace DiegeticUIMod
 						int segs = h.Fill <= 0.001f ? 0 : h.Fill < 0.34f ? 1 : h.Fill < 0.67f ? 2 : 3;
 						for (int i = 0; i < 3; i++)
 						{
-							Rect sr = new Rect(tx + i * 17f, r.y + 46f, 14f, 18f);
+							Rect sr = new Rect(tx + i * 17f, r.y + 38f, 14f, 16f);
 							if (i < segs) Art.Rect(sr, low ? Art.Red : Art.Reserve(h.Fill * 100f)); else Art.Outline(sr, 2f, Art.InkSoft);
 						}
-						Art.Rect(new Rect(tx + 51f, r.y + 50f, 4f, 10f), Art.InkSoft);
+						Art.Rect(new Rect(tx + 51f, r.y + 42f, 4f, 8f), Art.InkSoft);
 					}
 					else
 					{
-						Rect bar = new Rect(tx, r.y + 50f, 62f, 9f);
+						Rect bar = new Rect(tx, r.y + 42f, Mathf.Min(62f, tw), 9f);
 						Art.Rect(new Rect(bar.x, bar.y, bar.width * h.Fill, bar.height), low ? Art.Red : Art.Reserve(h.Fill * 100f));
 						Art.Outline(bar, 2f, Art.InkSoft);
 					}
 				}
 				if (!string.IsNullOrEmpty(h.Amount))
-					Art.Label(new Rect(tx, r.y + 64f, tw, 26f), h.Amount, Art.Text(Art.HandFont, 20, TextAnchor.UpperLeft, true), low ? Art.Red : Art.Ink);
+					Art.Label(new Rect(tx, r.y + 58f, tw, 26f), h.Amount, Art.Text(Art.HandFont, 20, TextAnchor.UpperLeft, true), low ? Art.Red : Art.Ink);
 			}
 		}
 
@@ -385,7 +392,7 @@ namespace DiegeticUIMod
 			Art.Label(new Rect(x, y - 2f, w, 30f), Mathf.RoundToInt(v) + (critical ? " !" : ""), num, ink);
 			// a short ink bar under the number
 			float bw = 64f;
-			Art.Rect(new Rect(x + w - bw - 44f, y + 16f, bw * Mathf.Clamp01(v / 100f), 4f), Art.Reserve(v));
+			Art.Rect(new Rect(x + w - bw - 58f, y + 16f, bw * Mathf.Clamp01(v / 100f), 4f), Art.Reserve(v));
 			y += 34f;
 		}
 	}

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using HarmonyLib;
 using OS.Items;
@@ -162,13 +163,14 @@ namespace DiegeticUIMod
 			while (Entries.Count > 12) Entries.RemoveAt(0);
 		}
 
-		internal static string FormatOC(float v) { return Mathf.FloorToInt(v).ToString("#,0").Replace(",", " "); }
-		internal static string FormatRM(float v) { return Mathf.FloorToInt(v + 0.0001f).ToString("#,0").Replace(",", " "); }
+		private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
+		internal static string FormatOC(float v) { return Mathf.FloorToInt(v).ToString("#,0", Inv).Replace(",", " "); }
+		internal static string FormatRM(float v) { return Mathf.FloorToInt(v + 0.0001f).ToString("#,0", Inv).Replace(",", " "); }
 		internal static string FormatDelta(Entry e)
 		{
-			if (e.Currency == "OC") return Mathf.RoundToInt(e.Amount).ToString("#,0").Replace(",", " ") + " OC";
+			if (e.Currency == "OC") return Mathf.RoundToInt(e.Amount).ToString("#,0", Inv).Replace(",", " ") + " OC";
 			float v = Mathf.Round(e.Amount * 10f) / 10f;
-			return (Mathf.Abs(v - Mathf.Round(v)) < 0.01f ? v.ToString("#,0") : v.ToString("#,0.0")).Replace(",", " ").Replace(".", ",") + " RM";
+			return (Mathf.Abs(v - Mathf.Round(v)) < 0.01f ? v.ToString("#,0", Inv) : v.ToString("#,0.0", Inv)).Replace(",", " ").Replace(".", ",") + " RM";
 		}
 
 		// ---- Equipped items (the same slots the game's corner icons use) ----
