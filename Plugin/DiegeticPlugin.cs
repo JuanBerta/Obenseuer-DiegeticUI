@@ -84,6 +84,12 @@ namespace DiegeticUIMod
 
 		private void LateUpdate()
 		{
+			try
+			{
+				bool menuOpen = GameUIController.instance != null && GameUIController.instance.IsMenuVisible;
+				if (Enabled.Value && PaperMenus.Value) MenuTheme.LateApply(menuOpen);
+			}
+			catch (Exception) { }
 			if (!Enabled.Value)
 			{
 				if (wasEnabled) { NativeHud.RestoreAll(); wasEnabled = false; }

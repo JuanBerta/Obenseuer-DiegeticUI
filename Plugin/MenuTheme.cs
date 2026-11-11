@@ -196,10 +196,29 @@ namespace DiegeticUIMod
 				if (p.GetComponent<Slot>() != null || p.GetComponent<ItemData>() != null) return true;
 				// crafting panels: the game colours recipe buttons to show what you can make
 				if (p.GetComponent<RecipeButton>() != null || p.GetComponent<RecipeListUI>() != null || p.GetComponent<RecipeInfoUI>() != null) return true;
-				string n = p.name;
-				if (n.IndexOf("tooltip", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+				// the hover tooltip windows themselves (not things that merely carry tooltip info, like skill cards)
+				if (p.GetComponent<ToolTip>() != null || p.GetComponent<TooltipUI>() != null) return true;
 			}
 			return false;
+		}
+
+		// Some pages (the Character skill cards) write their text colours every frame. After the game's own update,
+		// put our colour back wherever it simply restored the original; a different colour (a highlight) is left.
+		internal static void LateApply(bool menuOpen)
+		{
+			if (!applied || !menuOpen) return;
+			foreach (var kv in setTo)
+			{
+				Graphic g = kv.Key;
+				if (g == null || !g.isActiveAndEnabled) continue;
+				Color orig;
+				if (g.color != kv.Value && originals.TryGetValue(g, out orig) && Near(g.color, orig)) g.color = kv.Value;
+			}
+		}
+
+		private static bool Near(Color a, Color b)
+		{
+			return Mathf.Abs(a.r - b.r) < 0.02f && Mathf.Abs(a.g - b.g) < 0.02f && Mathf.Abs(a.b - b.b) < 0.02f && Mathf.Abs(a.a - b.a) < 0.05f;
 		}
 
 		internal static void Restore()
