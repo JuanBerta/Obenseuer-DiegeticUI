@@ -74,6 +74,7 @@ namespace DiegeticUIMod
 			bool menuOpen = false;
 			try { menuOpen = GameUIController.instance != null && GameUIController.instance.IsMenuVisible; } catch (Exception) { }
 			MenuTheme.Update(menuOpen, Enabled.Value && PaperMenus.Value);
+			if (menuOpen && Input.GetKeyDown(KeyCode.F10) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))) MenuTheme.DumpUnderMouse();
 			// Other mods read these flags and switch their own panels to the paper look (no hard dependency either way).
 			AppDomain.CurrentDomain.SetData("Obenseuer.DiegeticTheme.BankInventory", Enabled.Value && ThemeBank.Value);
 			AppDomain.CurrentDomain.SetData("Obenseuer.DiegeticTheme.LootMap", Enabled.Value && ThemeLootMap.Value);

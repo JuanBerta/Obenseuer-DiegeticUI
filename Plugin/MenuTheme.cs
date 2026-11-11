@@ -97,6 +97,8 @@ namespace DiegeticUIMod
 				surfaces[img] = s;
 			}
 
+			SkillCards(root);
+
 			foreach (TextMeshProUGUI t in root.GetComponentsInChildren<TextMeshProUGUI>(true))
 			{
 				if (t == null) continue;
@@ -116,6 +118,36 @@ namespace DiegeticUIMod
 				to.a = c.a;
 				t.color = to;
 				setTo[t] = to;
+			}
+		}
+
+		private static System.Reflection.FieldInfo skTitle, skLevel, skXp, skMax;
+
+		// The Character page's skill cards (CharacterPanelSkill): name, level and XP in ink on the paper card;
+		// the maxed skill keeps cream text on the dark gold plate the game shows for it.
+		private static void SkillCards(Transform root)
+		{
+			if (skTitle == null)
+			{
+				skTitle = HarmonyLib.AccessTools.Field(typeof(CharacterPanelSkill), "title");
+				skLevel = HarmonyLib.AccessTools.Field(typeof(CharacterPanelSkill), "level");
+				skXp = HarmonyLib.AccessTools.Field(typeof(CharacterPanelSkill), "xp");
+				skMax = HarmonyLib.AccessTools.Field(typeof(CharacterPanelSkill), "maxLevel");
+			}
+			foreach (CharacterPanelSkill card in root.GetComponentsInChildren<CharacterPanelSkill>(true))
+			{
+				var max = skMax != null ? skMax.GetValue(card) as GameObject : null;
+				bool maxed = max != null && max.activeSelf;
+				foreach (var f in new[] { skTitle, skLevel, skXp })
+				{
+					var t = f != null ? f.GetValue(card) as TextMeshProUGUI : null;
+					if (t == null) continue;
+					if (!originals.ContainsKey(t)) originals[t] = t.color;
+					Color to = maxed ? originals[t] : InkText;
+					to.a = originals[t].a;
+					t.color = to;
+					setTo[t] = to;
+				}
 			}
 		}
 
@@ -205,6 +237,8 @@ namespace DiegeticUIMod
 			for (Transform p = t; p != null; p = p.parent)
 			{
 				if (p.GetComponent<Slot>() != null || p.GetComponent<ItemData>() != null) return true;
+				// the Tenement page is already a paper blueprint by design
+				if (p.GetComponent<MonoBehaviour>() != null && TenementPage(p)) return true;
 				// crafting panels: the game colours recipe buttons to show what you can make
 				if (p.GetComponent<RecipeButton>() != null || p.GetComponent<RecipeListUI>() != null || p.GetComponent<RecipeInfoUI>() != null) return true;
 				// the hover tooltip windows themselves (not things that merely carry tooltip info, like skill cards)
@@ -230,6 +264,54 @@ namespace DiegeticUIMod
 		private static bool Near(Color a, Color b)
 		{
 			return Mathf.Abs(a.r - b.r) < 0.02f && Mathf.Abs(a.g - b.g) < 0.02f && Mathf.Abs(a.b - b.b) < 0.02f && Mathf.Abs(a.a - b.a) < 0.05f;
+		}
+
+		// Diagnostics: log every themed/unthemed graphic under the mouse with its colours and our decision.
+		internal static void DumpUnderMouse()
+		{
+			try
+			{
+				var es = UnityEngine.EventSystems.EventSystem.current;
+				if (es == null) { DiegeticPlugin.Log.LogInfo("Theme dump: no EventSystem"); return; }
+				Vector2 mouse = Input.mousePosition;
+				var sb = new System.Text.StringBuilder("Theme dump at " + mouse + "\n");
+				var seen = new HashSet<Graphic>();
+				foreach (Graphic g in UnityEngine.Object.FindObjectsOfType<Graphic>())
+				{
+					if (g == null || !g.isActiveAndEnabled || seen.Contains(g)) continue;
+					Canvas c = g.canvas;
+					Camera cam = c != null && c.renderMode != RenderMode.ScreenSpaceOverlay ? c.worldCamera : null;
+					if (!RectTransformUtility.RectangleContainsScreenPoint(g.rectTransform, mouse, cam)) continue;
+					seen.Add(g);
+					Color orig, mine; Surface su;
+					string kind = g is TextMeshProUGUI ? "TMP '" + ((TextMeshProUGUI)g).text.Replace("\n", " ").Substring(0, Math.Min(24, ((TextMeshProUGUI)g).text.Length)) + "'" : g.GetType().Name;
+					var img = g as Image;
+					sb.Append("  ").Append(Path(g.transform)).Append(" | ").Append(kind)
+					  .Append(" | color=").Append(g.color)
+					  .Append(" | orig=").Append(originals.TryGetValue(g, out orig) ? orig.ToString() : "-")
+					  .Append(" | set=").Append(setTo.TryGetValue(g, out mine) ? mine.ToString() : "-");
+					if (img != null) sb.Append(" | surface=").Append(surfaces.TryGetValue(img, out su) ? su.ToString() : "?").Append(" | sprite=").Append(img.sprite != null ? img.sprite.name : "none");
+					var tmp = g as TextMeshProUGUI;
+					if (tmp != null) sb.Append(" | vertexGradient=").Append(tmp.enableVertexGradient).Append(" | faceColor=").Append(tmp.fontSharedMaterial != null && tmp.fontSharedMaterial.HasProperty("_FaceColor") ? tmp.fontSharedMaterial.GetColor("_FaceColor").ToString() : "?").Append(" | skip=").Append(Skip(g.transform)).Append(" | insideRow=").Append(InsideRow(g.transform));
+					sb.Append("\n");
+				}
+				DiegeticPlugin.Log.LogInfo(sb.ToString());
+			}
+			catch (Exception e) { DiegeticPlugin.Log.LogWarning("Theme dump: " + e); }
+		}
+
+		private static string Path(Transform t)
+		{
+			var parts = new List<string>();
+			for (int i = 0; t != null && i < 7; t = t.parent, i++) parts.Insert(0, t.name);
+			return string.Join("/", parts.ToArray());
+		}
+
+		private static bool TenementPage(Transform p)
+		{
+			foreach (MonoBehaviour mb in p.GetComponents<MonoBehaviour>())
+				if (mb != null && mb.GetType().Name.StartsWith("Tenement", StringComparison.Ordinal)) return true;
+			return false;
 		}
 
 		internal static void Restore()
