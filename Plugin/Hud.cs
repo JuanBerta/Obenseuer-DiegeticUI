@@ -130,11 +130,12 @@ namespace DiegeticUIMod
 			{
 				var w = list[i];
 				Rect r = new Rect(x, center.y - sizes[i].y / 2f, sizes[i].x, sizes[i].y);
-				float alpha = w.Severe ? 0.7f + 0.3f * Pulse : 0.88f;
+				float alpha = w.Severe ? 0.75f + 0.25f * Pulse : 1f;
 				Color ink = new Color(w.Ink.r, w.Ink.g, w.Ink.b, alpha);
 				using (new Art.Turn(StampTilts[i % StampTilts.Length], r.center))
 				{
-					Art.Rect(r, new Color(0.91f, 0.88f, 0.79f, 0.16f));
+					// stamped on a scrap of paper so it reads on dark scenes
+					Art.PaperSheet(r);
 					Art.Outline(r, 3f, ink);
 					Art.Outline(new Rect(r.x + 4f, r.y + 4f, r.width - 8f, r.height - 8f), 1f, new Color(ink.r, ink.g, ink.b, alpha * 0.5f));
 					Art.Label(r, StampText(w), st, ink);

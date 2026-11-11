@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.2
+- Warning stamps (Police, Fungus, Rad...) are now stamped on paper, so they stay readable on dark scenes and at night.
+
 ## 1.0.1
 - Fixed the label of item action buttons (Eat, Slaughter, Drink...) turning invisible with the paper menus: text on the game's own buttons keeps its colour.
 
