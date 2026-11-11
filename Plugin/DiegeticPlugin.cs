@@ -19,10 +19,10 @@ namespace DiegeticUIMod
 	public class DiegeticPlugin : BaseUnityPlugin
 	{
 		public const string Guid = "com.juanberta.obenseuer.diegeticui";
-		public const string Version = "0.1.0";
+		public const string Version = "0.2.0";
 
 		internal static ManualLogSource Log;
-		internal static ConfigEntry<bool> Enabled, ShowNeeds, ShowWallet, ShowFeed, ShowHands;
+		internal static ConfigEntry<bool> Enabled, ShowNeeds, ShowWallet, ShowFeed, ShowHands, RestyleMenus;
 		internal static ConfigEntry<float> Scale, Opacity, EdgeMargin, BottomMargin;
 
 		private static readonly HashSet<string> warned = new HashSet<string>();
@@ -37,6 +37,7 @@ namespace DiegeticUIMod
 			ShowWallet = Config.Bind("Parts", "WatchAndWallet", true, "The wristwatch and the receipt wallet.");
 			ShowFeed = Config.Bind("Parts", "Notifications", true, "Event notifications as typed slips.");
 			ShowHands = Config.Bind("Parts", "EquippedTags", true, "Equipped items on luggage tags in the bottom corners.");
+			RestyleMenus = Config.Bind("Parts", "MenuRestyle", true, "Menus: manila folder tabs and a paper label on storage headers (the game's own buttons still take the clicks).");
 			Scale = Config.Bind("Layout", "Scale", 0.85f, new ConfigDescription("Overall size of the HUD.", new AcceptableValueRange<float>(0.5f, 1.6f)));
 			Opacity = Config.Bind("Layout", "Opacity", 1f, new ConfigDescription("Opacity during gameplay (menus are always fully opaque).", new AcceptableValueRange<float>(0.1f, 1f)));
 			EdgeMargin = Config.Bind("Layout", "EdgeMargin", 24f, new ConfigDescription("Distance from the screen edges.", new AcceptableValueRange<float>(0f, 120f)));
@@ -88,6 +89,7 @@ namespace DiegeticUIMod
 			if (!Enabled.Value || !GameData.Ready || Event.current.type != EventType.Repaint) return;
 			bool menu = false;
 			try { menu = GameUIController.instance != null && GameUIController.instance.IsMenuVisible; } catch (Exception) { }
+			if (Blocked(menu)) return;
 			if (!menu && !NativeHud.GameplayHudVisible) return;
 			GUI.depth = 10;
 			Hud.Draw(menu, Opacity.Value);
@@ -99,5 +101,18 @@ namespace DiegeticUIMod
 		}
 
 		private void OnDestroy() { NativeHud.RestoreAll(); }
+
+		// Screens the HUD must stay off: loading screens and the pause menu (it keeps the gameplay HUD "visible").
+		private static bool Blocked(bool menu)
+		{
+			try
+			{
+				if (SaveController.Loading) return true;
+				if (LoadingScreen.instance != null && (LoadingScreen.instance.Active || LoadingScreen.instance.FadeActive)) return true;
+				if (!menu && GameController.instance != null && GameController.instance.GameIsPaused) return true;
+			}
+			catch (Exception) { }
+			return false;
+		}
 	}
 }

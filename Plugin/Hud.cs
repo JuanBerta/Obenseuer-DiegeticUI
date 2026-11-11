@@ -24,6 +24,7 @@ namespace DiegeticUIMod
 				if (DiegeticPlugin.ShowFeed.Value) Slips(new Vector2(m + 12f, m + 10f));
 				if (menu)
 				{
+					if (DiegeticPlugin.RestyleMenus.Value) { FolderTabs(s); StorageLabel(s); }
 					float gutter = vw / 2f + 547f;   // right edge of the game's inventory panel
 					float gx = gutter + Mathf.Max(16f, (vw - gutter - 300f) / 2f);
 					if (DiegeticPlugin.ShowWallet.Value) CompactWatchAndReceipt(new Vector2(gx, 22f));
@@ -394,6 +395,88 @@ namespace DiegeticUIMod
 			float bw = 64f;
 			Art.Rect(new Rect(x + w - bw - 58f, y + 16f, bw * Mathf.Clamp01(v / 100f), 4f), Art.Reserve(v));
 			y += 34f;
+		}
+
+		// ---- Menus: manila folder tabs and the storage box label (drawn over the game's own, which still take the clicks) ----
+
+		// A UI element's rectangle on our virtual (scaled) screen.
+		private static bool VirtualRect(RectTransform rt, float scale, out Rect r)
+		{
+			r = default(Rect);
+			if (rt == null) return false;
+			var c = new Vector3[4];
+			rt.GetWorldCorners(c);
+			Canvas canvas = rt.GetComponentInParent<Canvas>();
+			Camera cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+			Vector2 a = RectTransformUtility.WorldToScreenPoint(cam, c[0]), b = RectTransformUtility.WorldToScreenPoint(cam, c[2]);
+			r = new Rect(Mathf.Min(a.x, b.x) / scale, (Screen.height - Mathf.Max(a.y, b.y)) / scale, Mathf.Abs(b.x - a.x) / scale, Mathf.Abs(b.y - a.y) / scale);
+			return r.width > 4f && r.height > 4f;
+		}
+
+		private static System.Reflection.FieldInfo pagesField, storageNameField;
+
+		private static void FolderTabs(float scale)
+		{
+			UIPageButtons ui = UIPageButtons.instance;
+			if (ui == null) return;
+			if (pagesField == null) pagesField = HarmonyLib.AccessTools.Field(typeof(UIPageButtons), "MenuPages");
+			var pages = pagesField != null ? pagesField.GetValue(ui) as MenuPage[] : null;
+			if (pages == null) return;
+			GUIStyle on = Art.Text(Art.TypeFont, 17, TextAnchor.MiddleCenter, true), off = Art.Text(Art.TypeFont, 15, TextAnchor.MiddleCenter);
+			foreach (MenuPage p in pages)
+			{
+				if (p == null || p.Button == null || !NativeHud.EffectivelyVisible(p.Button.transform)) continue;
+				Rect r;
+				if (!VirtualRect(p.Button.transform as RectTransform, scale, out r)) continue;
+				bool sel = p.Name == ui.currentPage;
+				// the tab grows up from the bottom of the game's button
+				float h = sel ? r.height + 8f : r.height - 2f;
+				Rect tab = new Rect(r.x + 2f, r.yMax - h, r.width - 4f, h);
+				Art.ShadowFor(tab, 6f, 3f, 0.45f);
+				Art.Tiled(tab, Art.PaperTex, sel ? new Color(0.93f, 0.85f, 0.67f, 1f) : new Color(0.72f, 0.66f, 0.5f, 1f));
+				// rounded-looking top corners
+				Color bg = new Color32(28, 25, 21, 255);
+				Art.Rect(new Rect(tab.x, tab.y, 4f, 3f), bg); Art.Rect(new Rect(tab.x, tab.y, 2f, 6f), bg);
+				Art.Rect(new Rect(tab.xMax - 4f, tab.y, 4f, 3f), bg); Art.Rect(new Rect(tab.xMax - 2f, tab.y, 2f, 6f), bg);
+				if (sel) Art.Rect(new Rect(tab.x + 6f, tab.yMax - 3f, tab.width - 12f, 3f), new Color32(185, 166, 112, 255));
+				string label = p.Text != null ? p.Text.text : p.Name.ToString();
+				Art.Label(tab, Spaced((label ?? "").ToUpperInvariant()), sel ? on : off, sel ? Art.Ink : (Color)new Color32(58, 50, 35, 255));
+			}
+		}
+
+		private static void StorageLabel(float scale)
+		{
+			StoragePanelUI panel = Inventory.instance != null ? Inventory.instance.storagePanelUI : null;
+			if (panel == null || !NativeHud.EffectivelyVisible(panel.transform)) return;
+			if (storageNameField == null) storageNameField = HarmonyLib.AccessTools.Field(typeof(StoragePanelUI), "storageName");
+			var tmp = storageNameField != null ? storageNameField.GetValue(panel) as TMPro.TextMeshProUGUI : null;
+			if (tmp == null || !tmp.isActiveAndEnabled || string.IsNullOrEmpty(tmp.text)) return;
+			Rect r;
+			if (!VirtualRect(tmp.rectTransform, scale, out r)) return;
+			string text = BoxLabel(tmp.text);
+			GUIStyle st = Art.Text(Art.TypeFont, 17, TextAnchor.MiddleLeft, true);
+			float w = Mathf.Min(Mathf.Max(r.width, Art.Measure(text, st).x + 28f), r.width + 60f);
+			Rect label = new Rect(r.x - 6f, r.center.y - 18f, w, 36f);
+			using (new Art.Turn(-1f, label.center))
+			{
+				Art.PaperSheet(label);
+				Art.Label(new Rect(label.x + 14f, label.y, label.width - 20f, label.height), text, st, Art.Ink);
+			}
+		}
+
+		// "Bank Inventory — Page 2/4" -> "BANK · box 2 of 4"; other storages keep their name.
+		private static string BoxLabel(string raw)
+		{
+			string t = System.Text.RegularExpressions.Regex.Replace(raw, "<[^>]+>", "").Trim();
+			var m = System.Text.RegularExpressions.Regex.Match(t, @"^(.*?)\s*[\u2014-]\s*Page\s*(\d+)\s*/\s*(\d+)\s*$");
+			if (m.Success)
+			{
+				string name = m.Groups[1].Value.Replace("Inventory", "").Trim();
+				return name.ToUpperInvariant() + " \u00b7 box " + m.Groups[2].Value + " of " + m.Groups[3].Value;
+			}
+			var f = System.Text.RegularExpressions.Regex.Match(t, @"^(.*?)\s*[\u2014-]\s*(\d+)\s*found");
+			if (f.Success) return f.Groups[1].Value.Replace("Inventory", "").Trim().ToUpperInvariant() + " \u00b7 " + f.Groups[2].Value + " found";
+			return t.ToUpperInvariant();
 		}
 	}
 }
