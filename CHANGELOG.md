@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.3
+- Paper menus: text colours follow panels the game switches between light and dark (Items page section headers, Tasks title bars), so they no longer fade.
+- Paper menus: highlight rows on the Items page lie on paper instead of showing dark cardboard bands.
+- The menu clipboard, watch and receipt step aside while an item tooltip would overlap them.
+
 ## 1.0.2
 - Warning stamps (Police, Fungus, Rad...) are now stamped on paper, so they stay readable on dark scenes and at night.
 

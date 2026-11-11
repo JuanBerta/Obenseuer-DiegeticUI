@@ -27,8 +27,10 @@ namespace DiegeticUIMod
 					if (DiegeticPlugin.RestyleMenus.Value) { FolderTabs(s); StorageLabel(s); }
 					float gutter = vw / 2f + 547f;   // right edge of the game's inventory panel
 					float gx = gutter + Mathf.Max(16f, (vw - gutter - 300f) / 2f);
-					if (DiegeticPlugin.ShowWallet.Value) CompactWatchAndReceipt(new Vector2(gx, 22f));
-					if (DiegeticPlugin.ShowNeeds.Value) Clipboard(new Rect(gx, 250f, 300f, 640f));
+					// the game's item tooltips go on top: a piece they would overlap steps aside
+					List<Rect> tips = Tooltips(s);
+					if (DiegeticPlugin.ShowWallet.Value && !Covered(tips, new Rect(gx - 10f, 12f, 320f, 230f))) CompactWatchAndReceipt(new Vector2(gx, 22f));
+					if (DiegeticPlugin.ShowNeeds.Value && !Covered(tips, new Rect(gx - 10f, 240f, 320f, 660f))) Clipboard(new Rect(gx, 250f, 300f, 640f));
 				}
 				else
 				{
@@ -44,6 +46,50 @@ namespace DiegeticUIMod
 			}
 			catch (Exception e) { DiegeticPlugin.WarnOnce("draw", "Drawing the HUD: " + e); }
 			finally { GUI.matrix = saved; Art.Alpha = 1f; }
+		}
+
+		// ---- Tooltips (virtual-screen rects of the game's open hover tooltips) ----
+
+		private static readonly List<TooltipUI> tooltipUIs = new List<TooltipUI>();
+		private static readonly List<Rect> tipRects = new List<Rect>();
+		private static float nextTipScan;
+		private static System.Reflection.FieldInfo tipField;
+
+		private static List<Rect> Tooltips(float s)
+		{
+			tipRects.Clear();
+			try
+			{
+				if (Time.unscaledTime >= nextTipScan)
+				{
+					nextTipScan = Time.unscaledTime + 2f;
+					tooltipUIs.Clear();
+					tooltipUIs.AddRange(UnityEngine.Object.FindObjectsOfType<TooltipUI>());
+					if (tipField == null) tipField = HarmonyLib.AccessTools.Field(typeof(TooltipUI), "tooltip");
+				}
+				var corners = new Vector3[4];
+				foreach (TooltipUI ui in tooltipUIs)
+				{
+					if (ui == null || tipField == null) continue;
+					var go = tipField.GetValue(ui) as GameObject;
+					if (go == null || !go.activeInHierarchy) continue;
+					var rt = go.transform as RectTransform;
+					if (rt == null) continue;
+					rt.GetWorldCorners(corners);
+					Canvas canvas = rt.GetComponentInParent<Canvas>();
+					Camera cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+					Vector2 a = RectTransformUtility.WorldToScreenPoint(cam, corners[0]), b = RectTransformUtility.WorldToScreenPoint(cam, corners[2]);
+					tipRects.Add(new Rect(Mathf.Min(a.x, b.x) / s, (Screen.height - Mathf.Max(a.y, b.y)) / s, Mathf.Abs(b.x - a.x) / s, Mathf.Abs(b.y - a.y) / s));
+				}
+			}
+			catch (Exception) { }
+			return tipRects;
+		}
+
+		private static bool Covered(List<Rect> tips, Rect r)
+		{
+			foreach (Rect t in tips) if (t.Overlaps(r)) return true;
+			return false;
 		}
 
 		// ---- Survival strip: two dials and five ink gauges on masking tape ----

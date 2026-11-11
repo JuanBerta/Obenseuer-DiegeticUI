@@ -102,30 +102,39 @@ namespace DiegeticUIMod
 
 			foreach (TextMeshProUGUI t in root.GetComponentsInChildren<TextMeshProUGUI>(true))
 			{
-				if (t == null) continue;
-				Color mineT;
-				if (originals.ContainsKey(t))
+				if (t == null || skillTexts.Contains(t) || !t.isActiveAndEnabled) continue;
+				Color c, mineT;
+				if (originals.TryGetValue(t, out c))
 				{
-					if (!setTo.TryGetValue(t, out mineT) || t.color == mineT) continue;
-					originals.Remove(t);
+					// the game set a new colour of its own (a highlight, a state change): that is the new original
+					bool ours = setTo.TryGetValue(t, out mineT);
+					if (!Near(t.color, c) && !(ours && Near(t.color, mineT))) { c = t.color; originals[t] = c; setTo.Remove(t); }
 				}
-				else if (Skip(t.transform)) continue;
-				Color c = t.color;
-				if (Lum(c) < 0.55f || Coloured(c)) { originals[t] = c; continue; }   // remember as handled, unchanged
+				else
+				{
+					if (Skip(t.transform)) { originals[t] = t.color; skippedTexts.Add(t); continue; }
+					c = t.color;
+					originals[t] = c;
+				}
+				if (Lum(c) < 0.55f || Coloured(c) || skippedTexts.Contains(t)) continue;   // dark, meaningful or skipped text stays
+				// re-judged every scan, since the game flips some panels between light and dark (hover, selection)
 				// the nearest surface wins: an untouched game button (Eat, Slaughter...) keeps its own text colour
 				Surface under = Behind(t.transform, t.rectTransform);
 				if (under == Surface.None && InsideRow(t.transform)) under = Surface.Paper;
 				if (under == Surface.Other) under = Surface.None;
-				if (under == Surface.None) { originals[t] = c; continue; }
-				originals[t] = c;
-				Color to = under == Surface.Paper ? InkText : CreamText;
+				// cardboard under a light coloured plate the game draws on top (the gallery's orange section
+				// headers): it reads as a light surface, so ink
+				if (under == Surface.Board && OnLightPlate(t)) under = Surface.Paper;
+				Color to = under == Surface.None ? c : (under == Surface.Paper ? InkText : CreamText);
 				to.a = c.a;
-				t.color = to;
-				setTo[t] = to;
+				if (!Near(t.color, to)) t.color = to;
+				if (under == Surface.None) setTo.Remove(t); else setTo[t] = to;
 			}
 		}
 
 		private static System.Reflection.FieldInfo skTitle, skLevel, skXp, skMax;
+		private static readonly HashSet<TextMeshProUGUI> skillTexts = new HashSet<TextMeshProUGUI>();
+		private static readonly HashSet<TextMeshProUGUI> skippedTexts = new HashSet<TextMeshProUGUI>();
 
 		// The Character page's skill cards (CharacterPanelSkill): name, level and XP in ink on the paper card;
 		// the maxed skill keeps cream text on the dark gold plate the game shows for it.
@@ -146,6 +155,7 @@ namespace DiegeticUIMod
 				{
 					var t = f != null ? f.GetValue(card) as TextMeshProUGUI : null;
 					if (t == null) continue;
+					skillTexts.Add(t);
 					if (!originals.ContainsKey(t)) originals[t] = t.color;
 					Color to = maxed ? originals[t] : InkText;
 					to.a = originals[t].a;
@@ -169,15 +179,37 @@ namespace DiegeticUIMod
 			for (Transform p = start; p != null; p = p.parent)
 			{
 				Image own = p.GetComponent<Image>();
-				if (own != null && own.transform != target && Visible(own)) return Of(own);
+				if (own != null && own.transform != target && Visible(own) && !SeeThrough(own)) return Of(own);
 				if (p.parent != null)
 					for (int i = p.GetSiblingIndex() - 1; i >= 0; i--)
 					{
 						Image sib = p.parent.GetChild(i).GetComponent<Image>();
-						if (sib != null && Visible(sib) && Overlaps(sib.rectTransform, target)) return Of(sib);
+						if (sib != null && Visible(sib) && !SeeThrough(sib) && Overlaps(sib.rectTransform, target)) return Of(sib);
 					}
 			}
 			return Surface.None;
+		}
+
+		// Our shadow layers are see-through for deciding what lies under something.
+		private static bool SeeThrough(Image img)
+		{
+			// only our own light shadow layers (the dimming over cards): look past them to the card
+			Surface su;
+			return setTo.ContainsKey(img) && surfaces.TryGetValue(img, out su) && su == Surface.None && img.color.a < 0.4f;
+		}
+
+		private static bool OnLightPlate(TextMeshProUGUI t)
+		{
+			Transform parent = t.transform.parent;
+			if (parent == null) return false;
+			for (int i = 0; i < parent.childCount; i++)
+			{
+				Image img = parent.GetChild(i).GetComponent<Image>();
+				if (img == null || img.sprite == null || surfaces.ContainsKey(img) && surfaces[img] != Surface.None) continue;
+				if (!Visible(img) || !Coloured(img.color) || Lum(img.color) < 0.4f) continue;
+				if (Overlaps(img.rectTransform, t.rectTransform)) return true;
+			}
+			return false;
 		}
 
 		private static bool Visible(Image img) { return img.enabled && img.gameObject.activeInHierarchy && (img.color.a > 0.3f || surfaces.ContainsKey(img)); }
@@ -185,7 +217,16 @@ namespace DiegeticUIMod
 		private static Surface Of(Image img)
 		{
 			Surface s;
-			return surfaces.TryGetValue(img, out s) && s != Surface.None ? s : Surface.Other;
+			if (surfaces.TryGetValue(img, out s) && s != Surface.None && setTo.ContainsKey(img) && img.color == setTo[img]) return s;
+			// a flat panel we left alone (the game recolours some per state, like the gallery's section headers):
+			// judge it by the colour it shows now
+			if (img.sprite == null && !Coloured(img.color))
+			{
+				float l = Lum(img.color);
+				if (l > 0.6f) return Surface.Paper;
+				if (l < 0.32f) return Surface.Board;
+			}
+			return Surface.Other;
 		}
 
 		// Text that sits inside a row/card we turned into paper always gets ink.
@@ -326,6 +367,8 @@ namespace DiegeticUIMod
 			originals.Clear();
 			surfaces.Clear();
 			setTo.Clear();
+			skillTexts.Clear();
+			skippedTexts.Clear();
 			applied = false;
 		}
 	}
