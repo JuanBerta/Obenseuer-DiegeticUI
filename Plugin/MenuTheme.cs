@@ -21,7 +21,7 @@ namespace DiegeticUIMod
 		private static readonly Color InkText = new Color32(43, 36, 24, 255);
 		private static readonly Color CreamText = new Color32(240, 228, 205, 255);
 
-		private enum Surface { None, Board, Paper }
+		private enum Surface { None, Board, Paper, Other }   // Other: a visible image we left as the game made it
 
 		private static readonly Dictionary<Graphic, Color> originals = new Dictionary<Graphic, Color>();
 		private static readonly Dictionary<Image, Surface> surfaces = new Dictionary<Image, Surface>();
@@ -64,7 +64,7 @@ namespace DiegeticUIMod
 					originals[img] = c;
 					sprites[img] = img.sprite;
 					img.sprite = null;   // flat paper instead of the dark button art
-					Color to = Behind(img.transform, img.rectTransform) == Surface.Paper ? ManilaLight : Manila;
+					Color to = Behind(img.transform, img.rectTransform) == Surface.Paper ? ManilaLight : Manila;   // a row on paper is a shade lighter
 					to.a = c.a;
 					img.color = to;
 					setTo[img] = to;
@@ -86,7 +86,8 @@ namespace DiegeticUIMod
 				{
 					float l = Lum(c);
 					// by layer: an outer frame is cardboard, anything lying on a themed surface is paper
-					s = Behind(img.transform, img.rectTransform) == Surface.None ? Surface.Board : Surface.Paper;
+					Surface below = Behind(img.transform, img.rectTransform);
+					s = below == Surface.Board || below == Surface.Paper ? Surface.Paper : Surface.Board;
 					originals[img] = c;
 					Color to = s == Surface.Board ? (l < 0.04f ? CardboardDark : Cardboard) : (l < 0.1f ? Manila : ManilaLight);
 					to.a = c.a;
@@ -111,7 +112,10 @@ namespace DiegeticUIMod
 				else if (Skip(t.transform)) continue;
 				Color c = t.color;
 				if (Lum(c) < 0.55f || Coloured(c)) { originals[t] = c; continue; }   // remember as handled, unchanged
-				Surface under = InsideRow(t.transform) ? Surface.Paper : Behind(t.transform, t.rectTransform);
+				// the nearest surface wins: an untouched game button (Eat, Slaughter...) keeps its own text colour
+				Surface under = Behind(t.transform, t.rectTransform);
+				if (under == Surface.None && InsideRow(t.transform)) under = Surface.Paper;
+				if (under == Surface.Other) under = Surface.None;
 				if (under == Surface.None) { originals[t] = c; continue; }
 				originals[t] = c;
 				Color to = under == Surface.Paper ? InkText : CreamText;
@@ -181,7 +185,7 @@ namespace DiegeticUIMod
 		private static Surface Of(Image img)
 		{
 			Surface s;
-			return surfaces.TryGetValue(img, out s) ? s : Surface.None;
+			return surfaces.TryGetValue(img, out s) && s != Surface.None ? s : Surface.Other;
 		}
 
 		// Text that sits inside a row/card we turned into paper always gets ink.

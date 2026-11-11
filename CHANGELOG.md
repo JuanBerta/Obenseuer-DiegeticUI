@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.1
+- Fixed the label of item action buttons (Eat, Slaughter, Drink...) turning invisible with the paper menus: text on the game's own buttons keeps its colour.
+
 ## 1.0.0
 - First release: needs on masking tape, health and mind dials, warning stamps, LCD wristwatch, receipt wallet with payment lines, typed notification slips, equipped-item luggage tags, status clipboard, folder tabs and storage box labels in menus.
 - Paper menus: cardboard frames, manila rows and cards with ink text (Tasks, Notes, Character, inventory lists); colours only, fully restorable.

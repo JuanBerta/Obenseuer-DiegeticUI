@@ -5,9 +5,11 @@ Diegetic UI
 The HUD becomes the things you carry: needs on masking tape, health and mind on needle dials, warnings as rubber stamps, a cheap LCD watch, a receipt that prints every payment, typed notification slips, luggage tags for your tools, and paper-and-cardboard menus.
 
 === FILE DESCRIPTION ===
-Obenseuer-DiegeticUI-v1.0.0.rar : Diegetic UI 1.0.0 for BepInEx 6. Extract into the Obenseuer folder.
+Obenseuer-DiegeticUI-v1.0.1.rar : Diegetic UI 1.0.1 for BepInEx 6. Extract into the Obenseuer folder.
 
 === CHANGELOG (Nexus "Changelogs" tab) ===
+1.0.1
+- Fixed the label of item action buttons (Eat, Slaughter, Drink...) turning invisible with the paper menus.
 1.0.0
 - First release.
 
