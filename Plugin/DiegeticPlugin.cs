@@ -19,7 +19,7 @@ namespace DiegeticUIMod
 	public class DiegeticPlugin : BaseUnityPlugin
 	{
 		public const string Guid = "com.juanberta.obenseuer.diegeticui";
-		public const string Version = "1.0.3";
+		public const string Version = "1.0.4";
 
 		internal static ManualLogSource Log;
 		internal static ConfigEntry<bool> Enabled, ShowNeeds, ShowWallet, ShowFeed, ShowHands, RestyleMenus, PaperMenus, ThemeBank, ThemeLootMap;
@@ -73,7 +73,6 @@ namespace DiegeticUIMod
 		{
 			bool menuOpen = false;
 			try { menuOpen = GameUIController.instance != null && GameUIController.instance.IsMenuVisible; } catch (Exception) { }
-			MenuTheme.Update(menuOpen, Enabled.Value && PaperMenus.Value);
 			if (menuOpen && Input.GetKeyDown(KeyCode.F10) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))) MenuTheme.DumpUnderMouse();
 			// Other mods read these flags and switch their own panels to the paper look (no hard dependency either way).
 			AppDomain.CurrentDomain.SetData("Obenseuer.DiegeticTheme.BankInventory", Enabled.Value && ThemeBank.Value);
@@ -88,6 +87,8 @@ namespace DiegeticUIMod
 			try
 			{
 				bool menuOpen = GameUIController.instance != null && GameUIController.instance.IsMenuVisible;
+				// after the game's own updates this frame, so new or recoloured text is fixed before it is drawn
+				MenuTheme.Update(menuOpen, Enabled.Value && PaperMenus.Value);
 				if (Enabled.Value && PaperMenus.Value) MenuTheme.LateApply(menuOpen);
 			}
 			catch (Exception) { }
@@ -129,6 +130,8 @@ namespace DiegeticUIMod
 				else if (LoadingScreenShowing()) why = "loading screen";
 				else if (!menu && GameController.instance != null && GameController.instance.GameIsPaused && PauseMenuShowing()) why = "paused";
 				else if (!menu && ConversationActive()) why = "conversation";
+				// another mod's window (Scam Artist's ledger, Special Orders...) frees the cursor during play
+				else if (!menu && Cursor.visible && Cursor.lockState != CursorLockMode.Locked) why = "mod window";
 			}
 			catch (Exception) { }
 			if (why != null && Time.unscaledTime >= nextBlockLog)

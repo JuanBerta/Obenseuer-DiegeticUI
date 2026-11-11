@@ -27,14 +27,30 @@ namespace DiegeticUIMod
 		private static readonly Dictionary<Image, Surface> surfaces = new Dictionary<Image, Surface>();
 		private static readonly Dictionary<Graphic, Color> setTo = new Dictionary<Graphic, Color>();
 		private static readonly Dictionary<Image, Sprite> sprites = new Dictionary<Image, Sprite>();
-		private static float nextScan;
+		private static float nextScan, burstUntil;
+		private static bool wasOpen;
+		private static object lastPage, lastForeign;
+		private static readonly HashSet<Image> gameArt = new HashSet<Image>();
+		private static System.Reflection.FieldInfo currentPageField;
 		private static bool applied;
 
 		internal static void Update(bool menuOpen, bool enabled)
 		{
 			if (!enabled) { if (applied) Restore(); return; }
-			if (!menuOpen || Time.unscaledTime < nextScan) return;
-			nextScan = Time.unscaledTime + 0.5f;   // new rows (notes, tasks) appear as pages open
+			if (!menuOpen) { wasOpen = false; return; }
+			// right after the menu, a page or a storage opens, theme every frame so new text never shows white
+			object page = null, foreign = null;
+			try
+			{
+				if (currentPageField == null) currentPageField = HarmonyLib.AccessTools.Field(typeof(UIPageButtons), "currentPage");
+				if (UIPageButtons.instance != null && currentPageField != null) page = currentPageField.GetValue(UIPageButtons.instance);
+				if (Inventory.instance != null) foreign = Inventory.instance.ForeignSlots;
+			}
+			catch (Exception) { }
+			if (!wasOpen || !Equals(page, lastPage) || !ReferenceEquals(foreign, lastForeign)) burstUntil = Time.unscaledTime + 0.6f;
+			wasOpen = true; lastPage = page; lastForeign = foreign;
+			if (Time.unscaledTime < nextScan && Time.unscaledTime >= burstUntil) return;
+			nextScan = Time.unscaledTime + 0.5f;
 			try { Scan(); } catch (Exception e) { DiegeticPlugin.WarnOnce("theme", "Menu theme: " + e.Message); }
 		}
 
@@ -49,8 +65,19 @@ namespace DiegeticUIMod
 
 			foreach (Image img in root.GetComponentsInChildren<Image>(true))
 			{
-				if (img == null) continue;
+				if (img == null || gameArt.Contains(img)) continue;
 				Color mine;
+				Sprite was;
+				if (sprites.TryGetValue(img, out was) && img.sprite != null)
+				{
+					// the game set its own button art again (the item panel's Buy/Sell/Use button): that button keeps
+					// the game's look from now on
+					Color o;
+					if (originals.TryGetValue(img, out o)) img.color = o;
+					sprites.Remove(img); surfaces.Remove(img); setTo.Remove(img); originals.Remove(img);
+					gameArt.Add(img);
+					continue;
+				}
 				if (surfaces.ContainsKey(img))
 				{
 					if (!setTo.TryGetValue(img, out mine) || img.color == mine) continue;
@@ -369,6 +396,7 @@ namespace DiegeticUIMod
 			setTo.Clear();
 			skillTexts.Clear();
 			skippedTexts.Clear();
+			gameArt.Clear();
 			applied = false;
 		}
 	}

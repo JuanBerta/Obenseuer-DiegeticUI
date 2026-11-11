@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4
+- Item panel buttons (Buy, Sell, Use, Eat...) keep the game's look with readable text in the paper menus, also in trade screens.
+- Paper menu text gets its colour right away: no white flash when a menu, page or storage opens.
+- The HUD hides while another mod's window is open (Scam Artist's ledger, Special Orders...).
+
 ## 1.0.3
 - Paper menus: text colours follow panels the game switches between light and dark (Items page section headers, Tasks title bars), so they no longer fade.
 - Paper menus: highlight rows on the Items page lie on paper instead of showing dark cardboard bands.

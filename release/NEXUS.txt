@@ -5,7 +5,7 @@ Diegetic UI
 The HUD becomes the things you carry: needs on masking tape, health and mind on needle dials, warnings as rubber stamps, a cheap LCD watch, a receipt that prints every payment, typed notification slips, luggage tags for your tools, and paper-and-cardboard menus.
 
 === FILE DESCRIPTION ===
-Obenseuer-DiegeticUI-v1.0.3.rar : Diegetic UI 1.0.3 for BepInEx 6. Extract into the Obenseuer folder.
+Obenseuer-DiegeticUI-v1.0.4.rar : Diegetic UI 1.0.4 for BepInEx 6. Extract into the Obenseuer folder.
 
 $11.0.3
 - Fixed faded text on the Items page section headers and Tasks title bars, and dark bands between recipes.
