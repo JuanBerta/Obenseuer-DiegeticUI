@@ -71,7 +71,18 @@ namespace DiegeticUIMod
 					surfaces[img] = Surface.Paper;
 					continue;
 				}
-				if (c.a > 0.35f && Mathf.Max(c.r, Mathf.Max(c.g, c.b)) < 0.32f && !Coloured(c) && !FullScreen(img.rectTransform))
+				if (c.a > 0.3f && c.a < 0.85f && Mathf.Max(c.r, Mathf.Max(c.g, c.b)) < 0.32f && !Coloured(c) && !FullScreen(img.rectTransform))
+				{
+					// a see-through dark layer (the dimming over unselected cards): keep it as a light shadow, not paper,
+					// so whatever is under it stays readable
+					originals[img] = c;
+					Color shade = new Color(0.12f, 0.08f, 0.04f, c.a * 0.3f);
+					img.color = shade;
+					setTo[img] = shade;
+					surfaces[img] = Surface.None;
+					continue;
+				}
+				if (c.a >= 0.85f && Mathf.Max(c.r, Mathf.Max(c.g, c.b)) < 0.32f && !Coloured(c) && !FullScreen(img.rectTransform))
 				{
 					float l = Lum(c);
 					// by layer: an outer frame is cardboard, anything lying on a themed surface is paper
