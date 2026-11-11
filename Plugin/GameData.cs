@@ -134,6 +134,11 @@ namespace DiegeticUIMod
 			if (m == null) { moneyKnown = false; return; }
 			int oc = m.OCMoneyAmount;
 			float rm = m.RMoneyAmount;
+			// While a save loads the balances jump from 0 to the saved amounts: that's not a payment.
+			bool loading = false;
+			try { loading = SaveController.Loading || (LoadingScreen.instance != null && !LoadingScreen.instance.LevelLoadDone); } catch (Exception) { }
+			if (loading) quietUntil = Mathf.Max(quietUntil, Time.unscaledTime + 3f);
+			if (moneyKnown && OC == 0 && RM < 0.05f && (oc != 0 || rm >= 0.05f)) quietUntil = Mathf.Max(quietUntil, Time.unscaledTime + 1f);
 			if (!moneyKnown || Time.unscaledTime < quietUntil)
 			{
 				OC = oc; RM = rm; moneyKnown = true;

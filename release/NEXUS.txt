@@ -1,0 +1,54 @@
+=== NAME ===
+Diegetic UI
+
+=== SHORT DESCRIPTION (summary) ===
+The HUD becomes the things you carry: needs on masking tape, health and mind on needle dials, warnings as rubber stamps, a cheap LCD watch, a receipt that prints every payment, typed notification slips and luggage tags for your tools.
+
+=== FILE DESCRIPTION ===
+Obenseuer-DiegeticUI-v1.0.0.rar : Diegetic UI 1.0.0 for BepInEx 6. Extract into the Obenseuer folder.
+
+=== CHANGELOG (Nexus "Changelogs" tab) ===
+1.0.0
+- First release.
+
+=== FULL DESCRIPTION (BBCode) ===
+[size=5][b]Diegetic UI[/b][/size]
+[i]The HUD becomes the things you carry.[/i]
+
+Obenseuer is a gritty, grounded game, so this HUD is too: instead of floating icons, everything you need to know is written, printed or stamped on things your character has on them.
+
+[size=4][b]On screen[/b][/size]
+[list]
+[*][b]Needs on masking tape[/b]: Food, Water, Rest, Toilet and Clean as ink gauges (higher is better). They go from green through olive and mustard to rust and red, and pulse when nearly empty.
+[*][b]Health and Mind[/b] on needle dials printed on paper cards.
+[*][b]Warnings as rubber stamps[/b]: Bleeding, Police (the real crime value), Arrest, Radiation, Fungus, the cravings and the duck. Severe ones throb.
+[*][b]A cheap LCD wristwatch[/b]: the time only shows with a watch equipped, the weekday only with a calendar watch - the game's own rule.
+[*][b]A receipt wallet[/b]: OC and RM, and every payment prints a green or red line that fades away.
+[*][b]Typed paper slips[/b] for notifications, coloured by category. The game's own queue, sounds and timing are kept.
+[*][b]Luggage tags[/b] for your equipped items, with the real item icon, battery segments for lights and a wear bar for tools.
+[/list]
+
+[size=4][b]In menus[/b][/size]
+[list]
+[*]A [b]status clipboard[/b] in the free space beside the inventory, live while you eat or drink.
+[*]A compact watch and receipt.
+[*][b]Manila folder tabs[/b] and a paper label on storage headers ("BANK · box 2 of 4" with Bank Inventory).
+[/list]
+
+[size=4][b]Good to know[/b][/size]
+[list]
+[*]Display only: it reads the game's values and hides the game's HUD pieces it replaces. Needs, money and saves are untouched.
+[*]Hidden on loading screens, the pause menu, conversations, building mode and whenever the game hides its own HUD.
+[*]Everything can be turned on or off, scaled and faded in the config: [code]BepInEx\config\com.juanberta.obenseuer.diegeticui.cfg[/code]
+[*]Use only one HUD replacement (it warns you if UI Overhaul is installed too).
+[*]Works with Bank Inventory, Recipe Marker, Loot Map, Special Orders and the skill mods.
+[/list]
+
+[size=4][b]Installation[/b][/size]
+[list=1]
+[*]Install [b]BepInEx 6[/b] (x64).
+[*]Extract the archive into your Obenseuer folder (where Obenseuer.exe is).
+[*]Remove any other HUD replacement mod.
+[/list]
+
+[url=https://github.com/JuanBerta/Obenseuer-DiegeticUI]Source on GitHub[/url]

@@ -21,7 +21,7 @@ namespace DiegeticUIMod
 			try
 			{
 				float m = DiegeticPlugin.EdgeMargin.Value;
-				if (DiegeticPlugin.ShowFeed.Value) Slips(new Vector2(m + 12f, m + 10f));
+				if (DiegeticPlugin.ShowFeed.Value) Slips(new Vector2(m + 12f, m + 10f), menu ? VH - m - 130f : -1f);
 				if (menu)
 				{
 					if (DiegeticPlugin.RestyleMenus.Value) { FolderTabs(s); StorageLabel(s); }
@@ -255,9 +255,18 @@ namespace DiegeticUIMod
 
 		// ---- Notifications: typed slips, top-left ----
 
-		private static void Slips(Vector2 at)
+		// bottomY >= 0: stack the slips upwards so the newest sits just above that line (used in menus).
+		private static void Slips(Vector2 at, float bottomY)
 		{
 			float y = at.y, now = Time.unscaledTime;
+			if (bottomY >= 0f)
+			{
+				float total = 0f;
+				GUIStyle bm = Art.Text(Art.TypeFont, 19, TextAnchor.UpperLeft, false, true);
+				foreach (GameData.Slip sl in GameData.Slips)
+					total += 46f + (string.IsNullOrEmpty(sl.Body) ? 0f : bm.CalcHeight(new GUIContent(sl.Body), 430f - 36f)) + 14f;
+				y = Mathf.Max(at.y, bottomY - total);
+			}
 			GUIStyle head = Art.Text(Art.TypeFont, 13, TextAnchor.UpperLeft);
 			GUIStyle body = Art.Text(Art.TypeFont, 19, TextAnchor.UpperLeft, false, true);
 			const float w = 430f;
@@ -439,9 +448,24 @@ namespace DiegeticUIMod
 				Art.Rect(new Rect(tab.x, tab.y, 4f, 3f), bg); Art.Rect(new Rect(tab.x, tab.y, 2f, 6f), bg);
 				Art.Rect(new Rect(tab.xMax - 4f, tab.y, 4f, 3f), bg); Art.Rect(new Rect(tab.xMax - 2f, tab.y, 2f, 6f), bg);
 				if (sel) Art.Rect(new Rect(tab.x + 6f, tab.yMax - 3f, tab.width - 12f, 3f), new Color32(185, 166, 112, 255));
-				string label = p.Text != null ? p.Text.text : p.Name.ToString();
+				string label = PageTitle(p.Name);
 				Art.Label(tab, Spaced((label ?? "").ToUpperInvariant()), sel ? on : off, sel ? Art.Ink : (Color)new Color32(58, 50, 35, 255));
 			}
+		}
+
+		private static string PageTitle(MenuPageNames n)
+		{
+			switch (n)
+			{
+				case MenuPageNames.Inventory: return "Inventory";
+				case MenuPageNames.Character: return "Character";
+				case MenuPageNames.Tenement: return "Tenement";
+				case MenuPageNames.Map: return "Map";
+				case MenuPageNames.Tasks: return "Tasks";
+				case MenuPageNames.Notes: return "Notes";
+				case MenuPageNames.Items: return "Items";
+			}
+			return n.ToString();
 		}
 
 		private static void StorageLabel(float scale)

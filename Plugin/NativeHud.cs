@@ -26,7 +26,7 @@ namespace DiegeticUIMod
 						if (ui == null) continue;
 						foreach (string f in new[] { "HealthBar", "BleedingBar", "HungerBar", "ThirstBar", "TirednessBar", "BowelBar", "AlcoholNeedBar", "MushroomNeedBar", "SmokesNeedBar", "DepressionBar", "DuckBar", "HygieneBar", "GamblingBar" })
 						{
-							var bar = Traverse.Create(ui).Field(f).GetValue<PlayerStatUI>();
+							var bar = Field(typeof(PlayerStatsUI), f).GetValue(ui) as PlayerStatUI;
 							if (bar != null) Zero(bar.transform);
 						}
 					}
@@ -62,6 +62,15 @@ namespace DiegeticUIMod
 				}
 			}
 			catch (Exception e) { DiegeticPlugin.WarnOnce("hide", "Hiding the game's HUD: " + e.Message); }
+		}
+
+		private static readonly Dictionary<string, System.Reflection.FieldInfo> fields = new Dictionary<string, System.Reflection.FieldInfo>();
+		private static System.Reflection.FieldInfo Field(Type t, string name)
+		{
+			string k = t.Name + "." + name;
+			System.Reflection.FieldInfo f;
+			if (!fields.TryGetValue(k, out f)) { f = AccessTools.Field(t, name); fields[k] = f; }
+			return f;
 		}
 
 		private static void Zero(Transform t)
