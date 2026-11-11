@@ -2,7 +2,7 @@
 Diegetic UI
 
 === SHORT DESCRIPTION (summary) ===
-The HUD becomes the things you carry: needs on masking tape, health and mind on needle dials, warnings as rubber stamps, a cheap LCD watch, a receipt that prints every payment, typed notification slips and luggage tags for your tools.
+The HUD becomes the things you carry: needs on masking tape, health and mind on needle dials, warnings as rubber stamps, a cheap LCD watch, a receipt that prints every payment, typed notification slips, luggage tags for your tools, and paper-and-cardboard menus.
 
 === FILE DESCRIPTION ===
 Obenseuer-DiegeticUI-v1.0.0.rar : Diegetic UI 1.0.0 for BepInEx 6. Extract into the Obenseuer folder.
@@ -30,6 +30,7 @@ Obenseuer is a gritty, grounded game, so this HUD is too: instead of floating ic
 
 [size=4][b]In menus[/b][/size]
 [list]
+[*][b]Paper menus[/b]: dark frames become cardboard, rows and cards become manila paper with ink text - Tasks, Notes, the Character skill cards, the inventory lists. Only colours change, so everything works as before; item slots, crafting panels and the Tenement blueprint keep the game's look.
 [*]A [b]status clipboard[/b] in the free space beside the inventory, live while you eat or drink.
 [*]A compact watch and receipt.
 [*][b]Manila folder tabs[/b] and a paper label on storage headers ("BANK · box 2 of 4" with Bank Inventory).
@@ -41,7 +42,8 @@ Obenseuer is a gritty, grounded game, so this HUD is too: instead of floating ic
 [*]Hidden on loading screens, the pause menu, conversations, building mode and whenever the game hides its own HUD.
 [*]Everything can be turned on or off, scaled and faded in the config: [code]BepInEx\config\com.juanberta.obenseuer.diegeticui.cfg[/code]
 [*]Use only one HUD replacement (it warns you if UI Overhaul is installed too).
-[*]Works with Bank Inventory, Recipe Marker, Loot Map, Special Orders and the skill mods.
+[*][b]Bank Inventory[/b] and [b]Loot Map[/b] switch their own panels to the paper look when this mod is installed (each can be turned off).
+[*]Works with Recipe Marker, Special Orders and the skill mods.
 [/list]
 
 [size=4][b]Installation[/b][/size]
