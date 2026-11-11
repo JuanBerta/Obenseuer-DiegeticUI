@@ -19,7 +19,7 @@ namespace DiegeticUIMod
 	public class DiegeticPlugin : BaseUnityPlugin
 	{
 		public const string Guid = "com.juanberta.obenseuer.diegeticui";
-		public const string Version = "0.2.0";
+		public const string Version = "0.2.2";
 
 		internal static ManualLogSource Log;
 		internal static ConfigEntry<bool> Enabled, ShowNeeds, ShowWallet, ShowFeed, ShowHands, RestyleMenus;
@@ -127,14 +127,21 @@ namespace DiegeticUIMod
 		{
 			LoadingScreen ls = LoadingScreen.instance;
 			if (ls == null || !ls.Active || !ls.gameObject.activeInHierarchy) return false;
+			bool showing = false;
+			string detail = "";
 			foreach (string f in new[] { "normalScreen", "whiteScreen" })
 			{
 				var cg = HarmonyLib.Traverse.Create(ls).Field(f).GetValue<CanvasGroup>();
-				if (cg != null && cg.gameObject.activeInHierarchy && cg.alpha > 0.05f) return true;
+				if (cg == null) continue;
+				bool vis = NativeHud.EffectivelyVisible(cg.transform);
+				detail += f + " alpha=" + cg.alpha.ToString("0.00") + " visible=" + vis + "; ";
+				if (vis) showing = true;
 			}
-			return false;
+			if (!loggedLoading) { loggedLoading = true; Log.LogInfo("Loading screen check: " + detail + "levelLoadDone=" + ls.LevelLoadDone); }
+			return showing && !ls.LevelLoadDone;
 		}
 
+		private static bool loggedLoading;
 		private static PauseMenu pause;
 		private static bool PauseMenuShowing()
 		{
