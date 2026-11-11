@@ -103,16 +103,43 @@ namespace DiegeticUIMod
 		private void OnDestroy() { NativeHud.RestoreAll(); }
 
 		// Screens the HUD must stay off: loading screens and the pause menu (it keeps the gameplay HUD "visible").
+		private static float nextBlockLog;
 		private static bool Blocked(bool menu)
 		{
+			string why = null;
 			try
 			{
-				if (SaveController.Loading) return true;
-				if (LoadingScreen.instance != null && (LoadingScreen.instance.Active || LoadingScreen.instance.FadeActive)) return true;
-				if (!menu && GameController.instance != null && GameController.instance.GameIsPaused) return true;
+				if (SaveController.Loading) why = "loading";
+				else if (LoadingScreenShowing()) why = "loading screen";
+				else if (!menu && GameController.instance != null && GameController.instance.GameIsPaused && PauseMenuShowing()) why = "paused";
 			}
 			catch (Exception) { }
+			if (why != null && Time.unscaledTime >= nextBlockLog)
+			{
+				nextBlockLog = Time.unscaledTime + 30f;
+				Log.LogInfo("HUD hidden: " + why);
+			}
+			return why != null;
+		}
+
+		// The loading screen's canvas stays enabled between loads; it is showing only while its screens are opaque.
+		private static bool LoadingScreenShowing()
+		{
+			LoadingScreen ls = LoadingScreen.instance;
+			if (ls == null || !ls.Active || !ls.gameObject.activeInHierarchy) return false;
+			foreach (string f in new[] { "normalScreen", "whiteScreen" })
+			{
+				var cg = HarmonyLib.Traverse.Create(ls).Field(f).GetValue<CanvasGroup>();
+				if (cg != null && cg.gameObject.activeInHierarchy && cg.alpha > 0.05f) return true;
+			}
 			return false;
+		}
+
+		private static PauseMenu pause;
+		private static bool PauseMenuShowing()
+		{
+			if (pause == null) pause = UnityEngine.Object.FindObjectOfType<PauseMenu>();
+			return pause == null || NativeHud.EffectivelyVisible(pause.transform);
 		}
 	}
 }
