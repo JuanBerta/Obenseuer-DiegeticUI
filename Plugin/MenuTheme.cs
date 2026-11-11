@@ -98,7 +98,7 @@ namespace DiegeticUIMod
 				else if (Skip(t.transform)) continue;
 				Color c = t.color;
 				if (Lum(c) < 0.55f || Coloured(c)) { originals[t] = c; continue; }   // remember as handled, unchanged
-				Surface under = Behind(t.transform, t.rectTransform);
+				Surface under = InsideRow(t.transform) ? Surface.Paper : Behind(t.transform, t.rectTransform);
 				if (under == Surface.None) { originals[t] = c; continue; }
 				originals[t] = c;
 				Color to = under == Surface.Paper ? InkText : CreamText;
@@ -141,6 +141,20 @@ namespace DiegeticUIMod
 			return surfaces.TryGetValue(img, out s) ? s : Surface.None;
 		}
 
+		// Text that sits inside a row/card we turned into paper always gets ink.
+		private static bool InsideRow(Transform t)
+		{
+			int depth = 0;
+			for (Transform p = t.parent; p != null && depth < 4; p = p.parent, depth++)
+			{
+				Image img = p.GetComponent<Image>();
+				Surface s;
+				if (img != null && (sprites.ContainsKey(img) || (surfaces.TryGetValue(img, out s) && s == Surface.Paper))) return true;
+				if (img != null && surfaces.TryGetValue(img, out s) && s == Surface.Board) return false;
+			}
+			return false;
+		}
+
 		// A list row or card button drawn with the game's grey button art.
 		private static bool IsRow(Image img, Color c)
 		{
@@ -180,6 +194,8 @@ namespace DiegeticUIMod
 			for (Transform p = t; p != null; p = p.parent)
 			{
 				if (p.GetComponent<Slot>() != null || p.GetComponent<ItemData>() != null) return true;
+				// crafting panels: the game colours recipe buttons to show what you can make
+				if (p.GetComponent<RecipeButton>() != null || p.GetComponent<RecipeListUI>() != null || p.GetComponent<RecipeInfoUI>() != null) return true;
 				string n = p.name;
 				if (n.IndexOf("tooltip", StringComparison.OrdinalIgnoreCase) >= 0) return true;
 			}

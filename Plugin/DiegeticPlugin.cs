@@ -121,6 +121,7 @@ namespace DiegeticUIMod
 				if (SaveController.Loading) why = "loading";
 				else if (LoadingScreenShowing()) why = "loading screen";
 				else if (!menu && GameController.instance != null && GameController.instance.GameIsPaused && PauseMenuShowing()) why = "paused";
+				else if (!menu && ConversationActive()) why = "conversation";
 			}
 			catch (Exception) { }
 			if (why != null && Time.unscaledTime >= nextBlockLog)
@@ -151,6 +152,21 @@ namespace DiegeticUIMod
 		}
 
 		private static bool loggedLoading;
+		private static System.Reflection.PropertyInfo convProp;
+		private static bool convLooked;
+
+		// A conversation (people, phone calls) is on screen: the dialogue options sit where the needs strip is.
+		private static bool ConversationActive()
+		{
+			if (!convLooked)
+			{
+				convLooked = true;
+				Type dm = Type.GetType("PixelCrushers.DialogueSystem.DialogueManager, Assembly-CSharp-firstpass");
+				convProp = dm != null ? dm.GetProperty("isConversationActive", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static) : null;
+				if (convProp == null) Log.LogWarning("Couldn't find the dialogue system; the HUD won't hide during conversations.");
+			}
+			try { return convProp != null && (bool)convProp.GetValue(null, null); } catch (Exception) { return false; }
+		}
 		private static PauseMenu pause;
 		private static bool PauseMenuShowing()
 		{
