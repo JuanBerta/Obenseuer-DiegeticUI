@@ -26,6 +26,7 @@ namespace DiegeticUIMod
 		private static readonly Dictionary<Graphic, Color> originals = new Dictionary<Graphic, Color>();
 		private static readonly Dictionary<Image, Surface> surfaces = new Dictionary<Image, Surface>();
 		private static readonly Dictionary<Graphic, Color> setTo = new Dictionary<Graphic, Color>();
+		private static readonly Dictionary<Image, Sprite> sprites = new Dictionary<Image, Sprite>();
 		private static float nextScan;
 		private static bool applied;
 
@@ -58,12 +59,25 @@ namespace DiegeticUIMod
 				else if (Skip(img.transform)) continue;
 				Color c = img.color;
 				Surface s = Surface.None;
-				if (c.a > 0.35f && Mathf.Max(c.r, Mathf.Max(c.g, c.b)) < 0.32f && !Coloured(c))
+				if (IsRow(img, c))
+				{
+					originals[img] = c;
+					sprites[img] = img.sprite;
+					img.sprite = null;   // flat paper instead of the dark button art
+					Color to = Behind(img.transform, img.rectTransform) == Surface.Paper ? ManilaLight : Manila;
+					to.a = c.a;
+					img.color = to;
+					setTo[img] = to;
+					surfaces[img] = Surface.Paper;
+					continue;
+				}
+				if (c.a > 0.35f && Mathf.Max(c.r, Mathf.Max(c.g, c.b)) < 0.32f && !Coloured(c) && !FullScreen(img.rectTransform))
 				{
 					float l = Lum(c);
-					s = l < 0.075f ? Surface.Board : Surface.Paper;
+					// by layer: an outer frame is cardboard, anything lying on a themed surface is paper
+					s = Behind(img.transform, img.rectTransform) == Surface.None ? Surface.Board : Surface.Paper;
 					originals[img] = c;
-					Color to = s == Surface.Board ? (l < 0.04f ? CardboardDark : Cardboard) : (l < 0.14f ? Manila : ManilaLight);
+					Color to = s == Surface.Board ? (l < 0.04f ? CardboardDark : Cardboard) : (l < 0.1f ? Manila : ManilaLight);
 					to.a = c.a;
 					img.color = to;
 					setTo[img] = to;
@@ -84,7 +98,7 @@ namespace DiegeticUIMod
 				else if (Skip(t.transform)) continue;
 				Color c = t.color;
 				if (Lum(c) < 0.55f || Coloured(c)) { originals[t] = c; continue; }   // remember as handled, unchanged
-				Surface under = Behind(t.transform);
+				Surface under = Behind(t.transform, t.rectTransform);
 				if (under == Surface.None) { originals[t] = c; continue; }
 				originals[t] = c;
 				Color to = under == Surface.Paper ? InkText : CreamText;
@@ -101,22 +115,54 @@ namespace DiegeticUIMod
 			return max - min > 0.18f;
 		}
 
-		// The surface right behind a text: the nearest themed image among its parents (or their earlier siblings).
-		private static Surface Behind(Transform t)
+		// The surface right behind something: the nearest visible image among its own, the earlier siblings it lies
+		// on, and the same going up the parents. If that nearest image wasn't themed, the answer is None.
+		private static Surface Behind(Transform start, RectTransform target)
 		{
-			for (Transform p = t; p != null; p = p.parent)
+			for (Transform p = start; p != null; p = p.parent)
 			{
 				Image own = p.GetComponent<Image>();
-				Surface s;
-				if (own != null && surfaces.TryGetValue(own, out s) && s != Surface.None) return s;
+				if (own != null && own.transform != target && Visible(own)) return Of(own);
 				if (p.parent != null)
 					for (int i = p.GetSiblingIndex() - 1; i >= 0; i--)
 					{
 						Image sib = p.parent.GetChild(i).GetComponent<Image>();
-						if (sib != null && surfaces.TryGetValue(sib, out s) && s != Surface.None && Overlaps(sib.rectTransform, t as RectTransform)) return s;
+						if (sib != null && Visible(sib) && Overlaps(sib.rectTransform, target)) return Of(sib);
 					}
 			}
 			return Surface.None;
+		}
+
+		private static bool Visible(Image img) { return img.enabled && img.gameObject.activeInHierarchy && (img.color.a > 0.3f || surfaces.ContainsKey(img)); }
+
+		private static Surface Of(Image img)
+		{
+			Surface s;
+			return surfaces.TryGetValue(img, out s) ? s : Surface.None;
+		}
+
+		// A list row or card button drawn with the game's grey button art.
+		private static bool IsRow(Image img, Color c)
+		{
+			Selectable sel = img.GetComponent<Selectable>();
+			if (sel == null || sel.targetGraphic != img || img.sprite == null) return false;
+			if (sel is Scrollbar || sel is Slider || sel is InputField || sel is TMP_InputField || sel is Toggle) return false;
+			if (Lum(c) < 0.7f || Coloured(c) || c.a < 0.5f) return false;
+			Rect r = img.rectTransform.rect;
+			if (r.width < 120f || r.height < 24f || r.height > 140f) return false;
+			string n = img.sprite.name.ToLowerInvariant();
+			return !n.Contains("icon") && !n.Contains("arrow") && !n.Contains("star");
+		}
+
+		// Full-screen layers (dimmers, fades) stay as they are.
+		private static bool FullScreen(RectTransform rt)
+		{
+			var c = new Vector3[4];
+			rt.GetWorldCorners(c);
+			Canvas canvas = rt.GetComponentInParent<Canvas>();
+			Camera cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+			Vector2 a = RectTransformUtility.WorldToScreenPoint(cam, c[0]), b = RectTransformUtility.WorldToScreenPoint(cam, c[2]);
+			return Mathf.Abs(b.x - a.x) * Mathf.Abs(b.y - a.y) > Screen.width * Screen.height * 0.6f;
 		}
 
 		private static bool Overlaps(RectTransform a, RectTransform b)
@@ -142,6 +188,8 @@ namespace DiegeticUIMod
 
 		internal static void Restore()
 		{
+			foreach (var kv in sprites) if (kv.Key != null) kv.Key.sprite = kv.Value;
+			sprites.Clear();
 			foreach (var kv in originals) if (kv.Key != null) kv.Key.color = kv.Value;
 			originals.Clear();
 			surfaces.Clear();

@@ -22,7 +22,7 @@ namespace DiegeticUIMod
 		public const string Version = "1.0.0";
 
 		internal static ManualLogSource Log;
-		internal static ConfigEntry<bool> Enabled, ShowNeeds, ShowWallet, ShowFeed, ShowHands, RestyleMenus, PaperMenus;
+		internal static ConfigEntry<bool> Enabled, ShowNeeds, ShowWallet, ShowFeed, ShowHands, RestyleMenus, PaperMenus, ThemeBank, ThemeLootMap;
 		internal static ConfigEntry<float> Scale, Opacity, EdgeMargin, BottomMargin;
 
 		private static readonly HashSet<string> warned = new HashSet<string>();
@@ -39,6 +39,8 @@ namespace DiegeticUIMod
 			ShowHands = Config.Bind("Parts", "EquippedTags", true, "Equipped items on luggage tags in the bottom corners.");
 			RestyleMenus = Config.Bind("Parts", "MenuRestyle", true, "Menus: manila folder tabs and a paper label on storage headers (the game's own buttons still take the clicks).");
 			PaperMenus = Config.Bind("Parts", "MenuPaperTheme", true, "Menus: dark frames become cardboard, rows and cards become manila paper with ink text (colours only; item slots and icons keep the game's look).");
+			ThemeBank = Config.Bind("Other mods", "BankInventoryPaperLook", true, "If Bank Inventory is installed: its search box and crafting/bank buttons use the paper look too.");
+			ThemeLootMap = Config.Bind("Other mods", "LootMapPaperLook", true, "If Loot Map is installed: its panel on the map page uses the paper look too.");
 			Scale = Config.Bind("Layout", "Scale", 0.85f, new ConfigDescription("Overall size of the HUD.", new AcceptableValueRange<float>(0.5f, 1.6f)));
 			Opacity = Config.Bind("Layout", "Opacity", 1f, new ConfigDescription("Opacity during gameplay (menus are always fully opaque).", new AcceptableValueRange<float>(0.1f, 1f)));
 			EdgeMargin = Config.Bind("Layout", "EdgeMargin", 24f, new ConfigDescription("Distance from the screen edges.", new AcceptableValueRange<float>(0f, 120f)));
@@ -72,6 +74,9 @@ namespace DiegeticUIMod
 			bool menuOpen = false;
 			try { menuOpen = GameUIController.instance != null && GameUIController.instance.IsMenuVisible; } catch (Exception) { }
 			MenuTheme.Update(menuOpen, Enabled.Value && PaperMenus.Value);
+			// Other mods read these flags and switch their own panels to the paper look (no hard dependency either way).
+			AppDomain.CurrentDomain.SetData("Obenseuer.DiegeticTheme.BankInventory", Enabled.Value && ThemeBank.Value);
+			AppDomain.CurrentDomain.SetData("Obenseuer.DiegeticTheme.LootMap", Enabled.Value && ThemeLootMap.Value);
 			if (!Enabled.Value) return;
 			try { GameData.Update(); GameData.UpdateSlips(); }
 			catch (Exception e) { WarnOnce("update", "Reading the game: " + e); }
