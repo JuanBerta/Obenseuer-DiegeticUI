@@ -9,23 +9,25 @@ namespace DiegeticUIMod
 	{
 		private const float VH = 1080f;
 		private static float vw;   // virtual width at the current aspect ratio
+		private static float vh;   // virtual height: 1080 at Scale 1, taller when the HUD is scaled down
 
 		internal static void Draw(bool menu, float opacity)
 		{
 			Art.Init();
 			float s = Screen.height / VH * DiegeticPlugin.Scale.Value;
 			vw = Screen.width / s;
+			vh = Screen.height / s;   // anchor to the real screen edges at any Scale
 			Matrix4x4 saved = GUI.matrix;
 			GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(s, s, 1f));
 			Art.Alpha = menu ? 1f : opacity;
 			try
 			{
 				float m = DiegeticPlugin.EdgeMargin.Value;
-				if (DiegeticPlugin.ShowFeed.Value) Slips(new Vector2(m + 12f, m + 10f), menu ? VH - m - 130f : -1f);
+				if (DiegeticPlugin.ShowFeed.Value) Slips(new Vector2(m + 12f, m + 10f), menu ? vh - m - 130f : -1f);
 				if (menu)
 				{
 					if (DiegeticPlugin.RestyleMenus.Value) { FolderTabs(s); StorageLabel(s); }
-					float gutter = vw / 2f + 547f;   // right edge of the game's inventory panel
+					float gutter = vw / 2f + 547f / DiegeticPlugin.Scale.Value;   // right edge of the game's inventory panel (it doesn't follow our Scale)
 					float gx = gutter + Mathf.Max(16f, (vw - gutter - 300f) / 2f);
 					// the game's item tooltips go on top: a piece they would overlap steps aside
 					List<Rect> tips = Tooltips(s);
@@ -37,7 +39,7 @@ namespace DiegeticUIMod
 					if (DiegeticPlugin.ShowWallet.Value) WatchAndReceipt(new Vector2(vw - m - 28f - 130f, 0f));
 					if (DiegeticPlugin.ShowNeeds.Value)
 					{
-						float bottom = VH - DiegeticPlugin.BottomMargin.Value;
+						float bottom = vh - DiegeticPlugin.BottomMargin.Value;
 						Stamps(new Vector2(vw / 2f, bottom - 196f));
 						Strip(new Vector2(vw / 2f, bottom));
 					}
@@ -353,8 +355,8 @@ namespace DiegeticUIMod
 
 		private static void Tags(float margin)
 		{
-			if (GameData.Left.Any) Tag(new Rect(margin + 16f, VH - margin - 96f - 12f, 190f, 96f), GameData.Left, -3f, true);
-			if (GameData.Right.Any) Tag(new Rect(vw - margin - 16f - 190f, VH - margin - 96f - 12f, 190f, 96f), GameData.Right, 3f, false);
+			if (GameData.Left.Any) Tag(new Rect(margin + 16f, vh - margin - 96f - 12f, 190f, 96f), GameData.Left, -3f, true);
+			if (GameData.Right.Any) Tag(new Rect(vw - margin - 16f - 190f, vh - margin - 96f - 12f, 190f, 96f), GameData.Right, 3f, false);
 		}
 
 		private static void Tag(Rect r, GameData.Hand h, float tilt, bool holeRight)

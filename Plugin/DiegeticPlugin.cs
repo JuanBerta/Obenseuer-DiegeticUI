@@ -19,7 +19,7 @@ namespace DiegeticUIMod
 	public class DiegeticPlugin : BaseUnityPlugin
 	{
 		public const string Guid = "com.juanberta.obenseuer.diegeticui";
-		public const string Version = "1.0.4";
+		public const string Version = "1.0.5";
 
 		internal static ManualLogSource Log;
 		internal static ConfigEntry<bool> Enabled, ShowNeeds, ShowWallet, ShowFeed, ShowHands, RestyleMenus, PaperMenus, ThemeBank, ThemeLootMap;
@@ -87,7 +87,9 @@ namespace DiegeticUIMod
 			try
 			{
 				bool menuOpen = GameUIController.instance != null && GameUIController.instance.IsMenuVisible;
-				// after the game's own updates this frame, so new or recoloured text is fixed before it is drawn
+				// after the game's own updates this frame: first put our colours back where the game reset them
+				// (vending rows every frame), then check new or recoloured text, so it's judged on the real surface
+				if (Enabled.Value && PaperMenus.Value) MenuTheme.LateApply(menuOpen);
 				MenuTheme.Update(menuOpen, Enabled.Value && PaperMenus.Value);
 				if (Enabled.Value && PaperMenus.Value) MenuTheme.LateApply(menuOpen);
 			}
@@ -99,6 +101,9 @@ namespace DiegeticUIMod
 			}
 			wasEnabled = true;
 			NativeHud.Hide(ShowNeeds.Value, ShowWallet.Value, ShowWallet.Value, ShowHands.Value, ShowFeed.Value);
+			// the look-at text goes above the needs strip and its stamps
+			float sc = Screen.height / 1080f * Scale.Value;
+			NativeHud.LiftUseText(ShowNeeds.Value, (BottomMargin.Value + 240f) * sc);
 		}
 
 		private void OnGUI()

@@ -86,6 +86,11 @@ namespace DiegeticUIMod
 				else if (Skip(img.transform)) continue;
 				Color c = img.color;
 				Surface s = Surface.None;
+				if (IsActionButton(img, c))
+				{
+					// the game's own brown button art, untinted (a tint only darkens it); its text stays light
+					continue;
+				}
 				if (IsRow(img, c))
 				{
 					originals[img] = c;
@@ -115,6 +120,10 @@ namespace DiegeticUIMod
 					// by layer: an outer frame is cardboard, anything lying on a themed surface is paper
 					Surface below = Behind(img.transform, img.rectTransform);
 					s = below == Surface.Board || below == Surface.Paper ? Surface.Paper : Surface.Board;
+					// a vending machine row is always paper, in every state the game gives it (selected too)
+					if (img.GetComponent<VendingMachineItemUI>() != null) s = Surface.Paper;
+					// title bars (the note's title, like the Tasks ones) are paper everywhere
+					if (TitleBar(img)) s = Surface.Paper;
 					originals[img] = c;
 					Color to = s == Surface.Board ? (l < 0.04f ? CardboardDark : Cardboard) : (l < 0.1f ? Manila : ManilaLight);
 					to.a = c.a;
@@ -206,7 +215,9 @@ namespace DiegeticUIMod
 			for (Transform p = start; p != null; p = p.parent)
 			{
 				Image own = p.GetComponent<Image>();
-				if (own != null && own.transform != target && Visible(own) && !SeeThrough(own)) return Of(own);
+				// a containing image only counts when the text is drawn over it (the vending rows put the name inside
+				// the icon box but draw it to its right, on the row)
+				if (own != null && own.transform != target && Visible(own) && !SeeThrough(own) && Overlaps(own.rectTransform, target)) return Of(own);
 				if (p.parent != null)
 					for (int i = p.GetSiblingIndex() - 1; i >= 0; i--)
 					{
@@ -241,6 +252,31 @@ namespace DiegeticUIMod
 
 		private static bool Visible(Image img) { return img.enabled && img.gameObject.activeInHierarchy && (img.color.a > 0.3f || surfaces.ContainsKey(img)); }
 
+		// For the Ctrl+F10 dump: which image Behind() settles on.
+		private static string BehindName(Transform start, RectTransform target)
+		{
+			for (Transform p = start; p != null; p = p.parent)
+			{
+				Image own = p.GetComponent<Image>();
+				if (own != null && own.transform != target && Visible(own) && !SeeThrough(own) && Overlaps(own.rectTransform, target)) return "own:" + own.name + " col=" + own.color + " spr=" + (own.sprite != null ? own.sprite.name : "none");
+				if (p.parent != null)
+					for (int i = p.GetSiblingIndex() - 1; i >= 0; i--)
+					{
+						Image sib = p.parent.GetChild(i).GetComponent<Image>();
+						if (sib != null && Visible(sib) && !SeeThrough(sib) && Overlaps(sib.rectTransform, target)) return "sibling:" + sib.name + " col=" + sib.color + " spr=" + (sib.sprite != null ? sib.sprite.name : "none");
+					}
+			}
+			return "nothing";
+		}
+
+		private static float GroupAlpha(Transform t)
+		{
+			float a = 1f;
+			for (Transform p = t; p != null; p = p.parent)
+				foreach (CanvasGroup cg in p.GetComponents<CanvasGroup>()) if (cg.enabled) { a *= cg.alpha; if (cg.ignoreParentGroups) return a; }
+			return a;
+		}
+
 		private static Surface Of(Image img)
 		{
 			Surface s;
@@ -271,6 +307,40 @@ namespace DiegeticUIMod
 		}
 
 		// A list row or card button drawn with the game's grey button art.
+		// The game's action buttons (Buy, Sell, Use, Eat...): button art the game tints light and swaps on hover.
+		private static bool IsActionButton(Image img, Color c)
+		{
+			UnityEngine.UI.Button b = img.GetComponent<UnityEngine.UI.Button>();
+			if (b == null || b.targetGraphic != img || img.sprite == null) return false;
+			if (Lum(c) < 0.7f || Coloured(c) || c.a < 0.5f) return false;
+			Rect r = img.rectTransform.rect;
+			if (r.height < 20f || r.height > 90f) return false;
+			string n = img.sprite.name.ToLowerInvariant();
+			return n.StartsWith("button_") || r.width < 260f;
+		}
+
+		// A flat, wide, short bar that carries a title text.
+		private static bool TitleBar(Image img)
+		{
+			if (img.sprite != null || img.GetComponent<Selectable>() != null) return false;
+			Rect r = img.rectTransform.rect;
+			if (r.height < 30f || r.height > 90f || r.width < 250f || r.width < r.height * 4f) return false;
+			for (int i = 0; i < img.transform.childCount; i++)
+				if (img.transform.GetChild(i).GetComponent<TextMeshProUGUI>() != null) return true;
+			Transform parent = img.transform.parent;
+			if (parent == null) return false;
+			bool text = false;
+			for (int i = 0; i < parent.childCount; i++)
+			{
+				Transform ch = parent.GetChild(i);
+				if (ch == img.transform) continue;
+				if (ch.GetComponent<TextMeshProUGUI>() != null) text = true;
+				Image other = ch.GetComponent<Image>();
+				if (other != null && other.sprite != null) return false;   // a plate drawn on top (gallery headers)
+			}
+			return text;
+		}
+
 		private static bool IsRow(Image img, Color c)
 		{
 			Selectable sel = img.GetComponent<Selectable>();
@@ -280,6 +350,9 @@ namespace DiegeticUIMod
 			Rect r = img.rectTransform.rect;
 			if (r.width < 120f || r.height < 24f || r.height > 140f) return false;
 			string n = img.sprite.name.ToLowerInvariant();
+			// action buttons (Buy, Sell, Use, Eat...) use the game's own button art, which it swaps on hover: keep their look.
+			// List rows (tasks, notes, gallery headers) are wider and become paper.
+			if (sel is UnityEngine.UI.Button && (n.StartsWith("button_") || r.width < 260f)) return false;
 			return !n.Contains("icon") && !n.Contains("arrow") && !n.Contains("star");
 		}
 
@@ -364,7 +437,7 @@ namespace DiegeticUIMod
 					  .Append(" | set=").Append(setTo.TryGetValue(g, out mine) ? mine.ToString() : "-");
 					if (img != null) sb.Append(" | surface=").Append(surfaces.TryGetValue(img, out su) ? su.ToString() : "?").Append(" | sprite=").Append(img.sprite != null ? img.sprite.name : "none");
 					var tmp = g as TextMeshProUGUI;
-					if (tmp != null) sb.Append(" | vertexGradient=").Append(tmp.enableVertexGradient).Append(" | faceColor=").Append(tmp.fontSharedMaterial != null && tmp.fontSharedMaterial.HasProperty("_FaceColor") ? tmp.fontSharedMaterial.GetColor("_FaceColor").ToString() : "?").Append(" | skip=").Append(Skip(g.transform)).Append(" | insideRow=").Append(InsideRow(g.transform));
+					if (tmp != null) sb.Append(" | vertexGradient=").Append(tmp.enableVertexGradient).Append(" | faceColor=").Append(tmp.fontSharedMaterial != null && tmp.fontSharedMaterial.HasProperty("_FaceColor") ? tmp.fontSharedMaterial.GetColor("_FaceColor").ToString() : "?").Append(" | skip=").Append(Skip(g.transform)).Append(" | insideRow=").Append(InsideRow(g.transform)).Append(" | behind=").Append(Behind(g.transform, tmp.rectTransform)).Append(" via ").Append(BehindName(g.transform, tmp.rectTransform)).Append(" | alpha=").Append(tmp.alpha.ToString("0.00")).Append(" | groupAlpha=").Append(GroupAlpha(g.transform).ToString("0.00")).Append(" | skippedText=").Append(skippedTexts.Contains(tmp)).Append(" | inOriginals=").Append(originals.ContainsKey(tmp));
 					sb.Append("\n");
 				}
 				DiegeticPlugin.Log.LogInfo(sb.ToString());

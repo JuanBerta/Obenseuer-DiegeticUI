@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.5
+- Fixed: lowering Scale moved the HUD toward the middle of the screen. The needs strip, tags and slips now stay at the screen edges at any Scale, and the menu clipboard stays beside the inventory panel.
+- The game's look-at text (item name, amount) is lifted above the needs strip instead of hiding behind it.
+- Paper menus: vending machine rows are paper with readable names and prices; action buttons (Buy, Sell, Use, Equip...) keep the game's brown buttons with light text; the note title bar matches the Tasks title bars.
+
 ## 1.0.4
 - Item panel buttons (Buy, Sell, Use, Eat...) keep the game's look with readable text in the paper menus, also in trade screens.
 - Paper menu text gets its colour right away: no white flash when a menu, page or storage opens.

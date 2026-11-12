@@ -80,8 +80,57 @@ namespace DiegeticUIMod
 			t.localScale = Vector3.zero;
 		}
 
+		// ---- The game's look-at text ("Glue / Amount 10/10") sits where the needs strip is: lift it above the strip ----
+
+		private static Transform useTextRoot;
+		private static Vector3 useTextHome;
+		private static bool useTextLifted;
+		private static readonly Vector3[] corners = new Vector3[4];
+
+		/// <summary>Keeps the look-at text's lowest edge above <paramref name="clearPx"/> screen pixels from the bottom.</summary>
+		internal static void LiftUseText(bool on, float clearPx)
+		{
+			try
+			{
+				if (UseText.instance == null) return;
+				if (useTextRoot == null)
+				{
+					var go = Traverse.Create(UseText.instance).Field("useTextUI").GetValue<GameObject>();
+					if (go == null) return;
+					useTextRoot = go.transform;
+					useTextHome = useTextRoot.localPosition;
+				}
+				useTextRoot.localPosition = useTextHome;
+				useTextLifted = false;
+				if (!on) return;
+				// lowest screen edge of the text it actually shows (rendered bounds, not the text boxes)
+				float low = float.MaxValue, worldPerPx = 1f;
+				foreach (TMPro.TextMeshProUGUI t in useTextRoot.GetComponentsInChildren<TMPro.TextMeshProUGUI>(false))
+				{
+					if (t == null || string.IsNullOrEmpty(t.text) || !t.isActiveAndEnabled) continue;
+					Bounds bd = t.textBounds;
+					if (bd.size.y <= 0f) continue;
+					Canvas c = t.canvas;
+					Camera cam = c != null && c.renderMode != RenderMode.ScreenSpaceOverlay ? c.worldCamera : null;
+					Vector3 w0 = t.transform.TransformPoint(new Vector3(bd.center.x, bd.min.y, 0f));
+					Vector3 w1 = t.transform.TransformPoint(new Vector3(bd.center.x, bd.max.y, 0f));
+					Vector2 p0 = RectTransformUtility.WorldToScreenPoint(cam, w0), p1 = RectTransformUtility.WorldToScreenPoint(cam, w1);
+					if (p0.y < low)
+					{
+						low = p0.y;
+						worldPerPx = (p1.y - p0.y) > 0.5f ? Vector3.Distance(w0, w1) / (p1.y - p0.y) : 1f;
+					}
+				}
+				if (low == float.MaxValue || low >= clearPx) return;
+				useTextRoot.position += useTextRoot.up * ((clearPx - low) * worldPerPx);
+				useTextLifted = true;
+			}
+			catch (Exception e) { DiegeticPlugin.WarnOnce("usetext", "Moving the look-at text: " + e.Message); }
+		}
+
 		internal static void RestoreAll()
 		{
+			if (useTextRoot != null && useTextLifted) { useTextRoot.localPosition = useTextHome; useTextLifted = false; }
 			foreach (var kv in hidden) if (kv.Key != null) kv.Key.localScale = kv.Value;
 			hidden.Clear();
 		}
