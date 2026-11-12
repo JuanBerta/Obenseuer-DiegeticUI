@@ -7,7 +7,16 @@ The HUD becomes the things you carry: needs on masking tape, health and mind on 
 === FILE DESCRIPTION ===
 Obenseuer-DiegeticUI-v1.0.5.rar : Diegetic UI 1.0.5 for BepInEx 6. Extract into the Obenseuer folder.
 
-$11.0.3
+=== CHANGELOG (Nexus "Changelogs" tab) ===
+1.0.5
+- Fixed: lowering Scale moved the HUD toward the middle of the screen. The HUD now stays at the screen edges at any Scale.
+- The game's look-at text (item name, amount) is lifted above the needs strip instead of hiding behind it.
+- Paper menus: vending machine rows are paper with readable names and prices; action buttons (Buy, Sell, Use, Equip...) keep the game's brown buttons with light text; the note title bar matches the Tasks title bars.
+1.0.4
+- Buy/Sell/Use/Eat buttons keep readable text in the paper menus (trade screens too).
+- No white flash of menu text when a page opens.
+- The HUD hides while another mod's window is open (Scam Artist's ledger, Special Orders...).
+1.0.3
 - Fixed faded text on the Items page section headers and Tasks title bars, and dark bands between recipes.
 - The clipboard and receipt no longer cover item tooltips.
 1.0.2
