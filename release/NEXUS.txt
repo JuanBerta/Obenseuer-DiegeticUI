@@ -2,12 +2,18 @@
 Diegetic UI
 
 === SHORT DESCRIPTION (summary) ===
-The HUD becomes the things you carry: needs on masking tape, health and mind on needle dials, warnings as rubber stamps, a cheap LCD watch, a receipt that prints every payment, typed notification slips, luggage tags for your tools, and paper-and-cardboard menus.
+A HUD and menus drawn like the game's own Tenement blueprint: ruled grey forms, typewriter labels, octagon dials for health and mind, a cheap LCD watch, a wallet ledger, form notifications and item cards.
 
 === FILE DESCRIPTION ===
-Obenseuer-DiegeticUI-v1.0.6.rar : Diegetic UI 1.0.6 for BepInEx 6. Extract into the Obenseuer folder.
+Obenseuer-DiegeticUI-v1.1.0.rar : Diegetic UI 1.1.0 for BepInEx 6. Extract into the Obenseuer folder.
 
 === CHANGELOG (Nexus "Changelogs" tab) ===
+1.1.0
+- New look, taken from the game itself: every HUD piece is a ruled grey form like the Tenement page's drawing (speckled paper, 2px ink rules, spaced typewriter capitals), in the game's own colours.
+- Needs strip: a title block with a cell per need (name, value, bar), health and mind in octagon badges with a fill ring.
+- Warnings are small ruled tickets; the wallet is a ledger form (OC, RM, payments); notifications, equipped items and the menu status sheet are ruled forms.
+- Menus: frames and rows use the drawing-sheet grey with ruled edges instead of cardboard and manila; the open tab uses the game's amber.
+- Fixed: the HUD covered the furniture bar in building mode (L). It hides while the building menu is open.
 1.0.6
 - Fixed: the status clipboard in menus (and the watch and receipt) covered the game's skill level-up popup. They step aside while it shows.
 1.0.5
@@ -30,27 +36,25 @@ Obenseuer-DiegeticUI-v1.0.6.rar : Diegetic UI 1.0.6 for BepInEx 6. Extract into 
 
 === FULL DESCRIPTION (BBCode) ===
 [size=5][b]Diegetic UI[/b][/size]
-[i]The HUD becomes the things you carry.[/i]
+[i]A HUD that looks like it belongs in Obenseuer.[/i]
 
-Obenseuer is a gritty, grounded game, so this HUD is too: instead of floating icons, everything you need to know is written, printed or stamped on things your character has on them.
+Everything on screen is drawn like the game's own Tenement blueprint: speckled grey drawing paper, ruled ink cells, spaced typewriter capitals and the game's own colours (olive, amber and blood red for good, low and critical). No floating icons.
 
 [size=4][b]On screen[/b][/size]
 [list]
-[*][b]Needs on masking tape[/b]: Food, Water, Rest, Toilet and Clean as ink gauges (higher is better). They go from green through olive and mustard to rust and red, and pulse when nearly empty.
-[*][b]Health and Mind[/b] on needle dials printed on paper cards.
-[*][b]Warnings as rubber stamps[/b]: Bleeding, Police (the real crime value), Arrest, Radiation, Fungus, the cravings and the duck. Severe ones throb.
+[*][b]Needs strip[/b]: a title block along the bottom with a cell for Food, Water, Rest, Toilet and Clean (name, value and a ruled bar), and Health and Mind in octagon badges with a fill ring. Critical needs pulse.
+[*][b]Warning tickets[/b]: Bleeding, Police (the real crime value), Arrest, Radiation, Fungus, the cravings and the duck, each with its colour; severe ones throb.
 [*][b]A cheap LCD wristwatch[/b]: the time only shows with a watch equipped, the weekday only with a calendar watch - the game's own rule.
-[*][b]A receipt wallet[/b]: OC and RM, and every payment prints a green or red line that fades away.
-[*][b]Typed paper slips[/b] for notifications, coloured by category. The game's own queue, sounds and timing are kept.
-[*][b]Luggage tags[/b] for your equipped items, with the real item icon, battery segments for lights and a wear bar for tools.
+[*][b]A wallet ledger[/b]: OC and RM, and every payment adds a green or red line that fades away.
+[*][b]Notification forms[/b], coloured by category. The game's own queue, sounds and timing are kept.
+[*][b]Item cards[/b] for what you hold, with the real item icon, its amount and a charge or wear bar.
 [/list]
 
 [size=4][b]In menus[/b][/size]
 [list]
-[*][b]Paper menus[/b]: dark frames become cardboard, rows and cards become manila paper with ink text - Tasks, Notes, the Character skill cards, the inventory lists. Only colours change, so everything works as before; item slots, crafting panels and the Tenement blueprint keep the game's look.
-[*]A [b]status clipboard[/b] in the free space beside the inventory, live while you eat or drink.
-[*]A compact watch and receipt.
-[*][b]Manila folder tabs[/b] and a paper label on storage headers ("BANK · box 2 of 4" with Bank Inventory).
+[*][b]Drawing-sheet menus[/b]: frames, rows and cards take the grey paper with ruled edges and ink text - Tasks, Notes, the Character skill cards, the inventory lists, shops. Only colours change, so everything works as before; item slots, crafting panels and the Tenement page keep the game's look.
+[*]A [b]status sheet[/b] beside the inventory (Condition and Notes tables), live while you eat or drink.
+[*]A compact watch and wallet, paper tabs (the open one in the game's amber) and a ruled label on storage headers ("BANK · box 2 of 4" with Bank Inventory).
 [/list]
 
 [size=4][b]Good to know[/b][/size]
@@ -60,7 +64,7 @@ Obenseuer is a gritty, grounded game, so this HUD is too: instead of floating ic
 [*]Everything can be turned on or off, scaled and faded in the config: [code]BepInEx\config\com.juanberta.obenseuer.diegeticui.cfg[/code]
 [*]Use only one HUD replacement (it warns you if UI Overhaul is installed too).
 [*][b]Bank Inventory[/b] and [b]Loot Map[/b] switch their own panels to the paper look when this mod is installed (each can be turned off).
-[*]Works with Recipe Marker, Special Orders and the skill mods.
+[*]Works with Recipe Marker, Special Orders and the Skills Pack.
 [/list]
 
 [size=4][b]Installation[/b][/size]

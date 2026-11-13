@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+- New look from the game itself: HUD pieces are ruled grey forms like the Tenement drawing (speckled paper, ink rules, spaced typewriter capitals), in the game's colours.
+- Needs strip as a title block; health and mind in octagon badges; warnings as ruled tickets; wallet as a ledger; notifications, item cards and the menu status sheet as forms.
+- Menus use the drawing-sheet grey with ruled edges instead of cardboard and manila; the open tab is the game's amber.
+- Fixed: the HUD covered the building-mode furniture bar (L); it hides while the building menu is open.
+
 ## 1.0.6
 - Fixed: the status clipboard in menus (and the watch and receipt) covered the game's skill level-up popup on the right. They step aside while it shows.
 

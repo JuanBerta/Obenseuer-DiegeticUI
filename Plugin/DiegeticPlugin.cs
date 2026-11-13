@@ -19,7 +19,7 @@ namespace DiegeticUIMod
 	public class DiegeticPlugin : BaseUnityPlugin
 	{
 		public const string Guid = "com.juanberta.obenseuer.diegeticui";
-		public const string Version = "1.0.6";
+		public const string Version = "1.1.0";
 
 		internal static ManualLogSource Log;
 		internal static ConfigEntry<bool> Enabled, ShowNeeds, ShowWallet, ShowFeed, ShowHands, RestyleMenus, PaperMenus, ThemeBank, ThemeLootMap;
@@ -135,6 +135,8 @@ namespace DiegeticUIMod
 				else if (LoadingScreenShowing()) why = "loading screen";
 				else if (!menu && GameController.instance != null && GameController.instance.GameIsPaused && PauseMenuShowing()) why = "paused";
 				else if (!menu && ConversationActive()) why = "conversation";
+				// building mode (L in the tenement): its furniture bar and placement preview need the screen
+				else if (BuildingSystemMenu.instance != null && BuildingSystemMenu.instance.menuIsOpen) why = "building";
 				// another mod's window (Scam Artist's ledger, Special Orders...) frees the cursor during play
 				else if (!menu && Cursor.visible && Cursor.lockState != CursorLockMode.Locked) why = "mod window";
 			}

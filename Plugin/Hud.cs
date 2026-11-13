@@ -14,6 +14,7 @@ namespace DiegeticUIMod
 		internal static void Draw(bool menu, float opacity)
 		{
 			Art.Init();
+			Art.RefreshFonts();
 			float s = Screen.height / VH * DiegeticPlugin.Scale.Value;
 			vw = Screen.width / s;
 			vh = Screen.height / s;   // anchor to the real screen edges at any Scale
@@ -39,11 +40,12 @@ namespace DiegeticUIMod
 				{
 					var popups = new List<Rect>();
 					Popups(s, popups);
-					if (DiegeticPlugin.ShowWallet.Value && !Covered(popups, new Rect(vw - m - 28f - 150f, 0f, 200f, 230f))) WatchAndReceipt(new Vector2(vw - m - 28f - 130f, 0f));
+					Vector2 wr = new Vector2(vw - m - 12f - WalletW, m + 10f);
+					if (DiegeticPlugin.ShowWallet.Value && !Covered(popups, new Rect(wr.x - 10f, 0f, WalletW + 20f, m + 360f))) WatchAndReceipt(wr);
 					if (DiegeticPlugin.ShowNeeds.Value)
 					{
 						float bottom = vh - DiegeticPlugin.BottomMargin.Value;
-						Stamps(new Vector2(vw / 2f, bottom - 196f));
+						Stamps(new Vector2(vw / 2f, bottom - BoardH - 26f));
 						Strip(new Vector2(vw / 2f, bottom));
 					}
 				}
@@ -142,120 +144,107 @@ namespace DiegeticUIMod
 
 		private static float Pulse { get { return 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f); } }
 
+		private const float BoardW = 900f, BoardH = 132f, DialCell = 150f;
+
+		// The needs as a drawing's title block: a ruled strip, a cell per reading, label over value.
 		private static void Strip(Vector2 bottomCenter)
 		{
-			const float dialW = 132f, dialH = 150f, gap = 18f;
-			const float gaugeW = 22f, gaugeGap = 30f, tapePad = 22f;
-			float tapeW = 5 * gaugeW + 4 * gaugeGap + tapePad * 2 + 20f, tapeH = 150f;
-			float total = dialW * 2 + tapeW + gap * 2;
-			float x = bottomCenter.x - total / 2f, y = bottomCenter.y - dialH;
-
-			Dial(new Rect(x, y, dialW, dialH), "HEALTH", GameData.Health, Art.Red, -2f);
-			Rect tape = new Rect(x + dialW + gap, bottomCenter.y - tapeH, tapeW, tapeH);
-			using (new Art.Turn(0.6f, tape.center))
+			Rect board = new Rect(bottomCenter.x - BoardW / 2f, bottomCenter.y - BoardH, BoardW, BoardH);
+			Art.Form(board);
+			Rect inner = Art.Inner(board);
+			Dial(new Rect(inner.x, inner.y, DialCell, inner.height), "HEALTH", GameData.Health, Art.Red);
+			Art.VRule(inner.x + DialCell, inner.y, inner.height);
+			Dial(new Rect(inner.xMax - DialCell, inner.y, DialCell, inner.height), "MIND", GameData.Mind, Art.Blue);
+			Art.VRule(inner.xMax - DialCell, inner.y, inner.height);
+			string[] names = { "FOOD", "WATER", "REST", "TOILET", "CLEAN" };
+			float[] vals = { GameData.Food, GameData.Water, GameData.Rest, GameData.Toilet, GameData.Clean };
+			float left = inner.x + DialCell, cw = (inner.width - DialCell * 2f) / names.Length;
+			for (int i = 0; i < names.Length; i++)
 			{
-				Art.ShadowFor(tape, 8f, 4f, 0.35f);
-				Art.TapeStrip(tape);
-				float gx = tape.x + tapePad + 10f;
-				Gauge(new Vector2(gx, tape.y + 12f), "FOOD", GameData.Food); gx += gaugeW + gaugeGap;
-				Gauge(new Vector2(gx, tape.y + 12f), "WATER", GameData.Water); gx += gaugeW + gaugeGap;
-				Gauge(new Vector2(gx, tape.y + 12f), "REST", GameData.Rest); gx += gaugeW + gaugeGap;
-				Gauge(new Vector2(gx, tape.y + 12f), "TOILET", GameData.Toilet); gx += gaugeW + gaugeGap;
-				Gauge(new Vector2(gx, tape.y + 12f), "CLEAN", GameData.Clean);
+				Rect cell = new Rect(left + cw * i, inner.y, cw, inner.height);
+				if (i > 0) Art.VRule(cell.x, cell.y, cell.height);
+				Gauge(cell, names[i], vals[i]);
 			}
-			Dial(new Rect(tape.xMax + gap, y, dialW, dialH), "MIND", GameData.Mind, Art.Blue, 2f);
+			Art.Wear(board);
 		}
 
-		private static void Gauge(Vector2 top, string label, float v)
+		// A need's cell: the name, the value, and a ruled bar along the bottom.
+		private static void Gauge(Rect cell, string label, float v)
 		{
 			bool critical = v < 10f;
-			Color ink = critical ? Art.Red : Art.Ink;
-			int n = Mathf.RoundToInt(v);
-			GUIStyle num = Art.Text(Art.HandFont, 26, TextAnchor.UpperCenter, true);
-			Art.Label(new Rect(top.x - 20f, top.y - 4f, 62f, 30f), n.ToString(), num, ink);
-			Rect box = new Rect(top.x, top.y + 28f, 22f, 84f);
-			if (critical) Art.Rect(new Rect(box.x - 4f, box.y - 4f, box.width + 8f, box.height + 8f), new Color(Art.Red.r, Art.Red.g, Art.Red.b, 0.15f + 0.3f * Pulse));
-			float h = box.height * Mathf.Clamp01(v / 100f);
-			Art.Rect(new Rect(box.x, box.yMax - h, box.width, h), Art.Reserve(v));
-			Art.Outline(box, 2f, critical ? Art.Red : Art.InkSoft);
-			GUIStyle lab = Art.Text(Art.TypeFont, 12, TextAnchor.UpperCenter);
-			Art.Label(new Rect(top.x - 25f, box.yMax + 5f, 72f, 16f), label, lab, ink);
+			if (critical) Art.Rect(new Rect(cell.x + 1f, cell.y, cell.width - 2f, cell.height), new Color(Art.Red.r, Art.Red.g, Art.Red.b, 0.10f + 0.18f * Pulse));
+			GUIStyle lab = Art.Text(Art.TypeFont, 14, TextAnchor.UpperCenter);
+			Art.Label(new Rect(cell.x, cell.y + 12f, cell.width, 18f), Spaced(label), lab, Art.Ink);
+			GUIStyle num = Art.Text(Art.TypeFont, 34, TextAnchor.UpperCenter, true);
+			Art.Label(new Rect(cell.x, cell.y + 34f, cell.width, 40f), Mathf.RoundToInt(v).ToString(), num, critical ? Art.Red : Art.Ink);
+			Rect bar = new Rect(cell.x + 16f, cell.yMax - 26f, cell.width - 32f, 12f);
+			Art.Outline(bar, 2f, Art.Rule);
+			Art.Rect(new Rect(bar.x + 3f, bar.y + 3f, (bar.width - 6f) * Mathf.Clamp01(v / 100f), bar.height - 6f), Art.Reserve(v));
 		}
 
-		private static void Dial(Rect r, string label, float v, Color accent, float tilt)
+		// Health or mind: an octagon badge holding the value, with a ring of ink showing how full it is.
+		private static void Dial(Rect cell, string label, float v, Color accent)
 		{
-			using (new Art.Turn(tilt, r.center))
-			{
-				Art.PaperSheet(r);
-				Vector2 c = new Vector2(r.center.x, r.y + 70f);
-				float t = Mathf.Clamp01(v / 100f);
-				Art.Arc(c, 44f, 8f, 0f, 1f, new Color32(201, 191, 166, 255));
-				if (t > 0.005f) Art.Arc(c, 44f, 8f, 0f, t, v < 10f ? Color.Lerp(accent, Art.Red, Pulse) : accent);
-				Art.Line(c, c + Art.Polar(t, 38f), 3f, Art.Ink);
-				Art.Circle(c, 5f, Art.Ink);
-				GUIStyle lab = Art.Text(Art.TypeFont, 13, TextAnchor.UpperCenter);
-				Art.Label(new Rect(r.x, c.y + 10f, r.width, 18f), label, lab, Art.Ink);
-				GUIStyle num = Art.Text(Art.HandFont, 30, TextAnchor.UpperCenter, true);
-				Art.Label(new Rect(r.x, c.y + 26f, r.width, 34f), Mathf.RoundToInt(v).ToString(), num, v < 10f ? Art.Red : Art.Ink);
-			}
+			GUIStyle lab = Art.Text(Art.TypeFont, 14, TextAnchor.UpperCenter);
+			Art.Label(new Rect(cell.x, cell.y + 12f, cell.width, 18f), Spaced(label), lab, Art.Ink);
+			Vector2 c = new Vector2(cell.center.x, cell.y + 72f);
+			float t = Mathf.Clamp01(v / 100f);
+			Art.Arc(c, 38f, 5f, 0f, 1f, new Color(Art.Ink.r, Art.Ink.g, Art.Ink.b, 0.18f));
+			if (t > 0.005f) Art.Arc(c, 38f, 5f, 0f, t, v < 10f ? Color.Lerp(accent, Art.Red, Pulse) : accent);
+			Art.Badge(c + new Vector2(0f, 6f), 26f, Art.InkSoft);
+			GUIStyle num = Art.Text(Art.TypeFont, 24, TextAnchor.MiddleCenter, true);
+			Art.Label(new Rect(c.x - 30f, c.y - 10f, 60f, 32f), Mathf.RoundToInt(v).ToString(), num, v < 10f ? (Color)new Color32(240, 150, 140, 255) : Art.Paper);
 		}
 
-		// ---- Warnings: rubber stamps ----
-
-		private static readonly float[] StampTilts = { -6f, 3f, -2f, 4f, -3f, 2f, -5f, 1f };
+		// ---- Warnings: small ruled tickets above the strip ----
 
 		private static void Stamps(Vector2 center)
 		{
 			List<GameData.Warning> list = GameData.Warnings;
 			if (list.Count == 0) return;
-			GUIStyle st = Art.Text(Art.TypeFont, 20, TextAnchor.MiddleCenter, true);
-			var sizes = new List<Vector2>();
+			GUIStyle st = Art.Text(Art.TypeFont, 15, TextAnchor.MiddleLeft, true);
+			const float gap = 10f, h = 40f;
+			var widths = new List<float>();
 			float total = 0f;
 			foreach (var w in list)
 			{
-				Vector2 sz = Art.Measure(StampText(w), st) + new Vector2(26f, 12f);
-				sizes.Add(sz);
-				total += sz.x + 22f;
+				float wd = Art.Measure(Spaced(StampText(w)), st).x + 54f;
+				widths.Add(wd);
+				total += wd + gap;
 			}
-			float x = center.x - (total - 22f) / 2f;
+			float x = center.x - (total - gap) / 2f;
 			for (int i = 0; i < list.Count; i++)
 			{
 				var w = list[i];
-				Rect r = new Rect(x, center.y - sizes[i].y / 2f, sizes[i].x, sizes[i].y);
-				float alpha = w.Severe ? 0.75f + 0.25f * Pulse : 1f;
-				Color ink = new Color(w.Ink.r, w.Ink.g, w.Ink.b, alpha);
-				using (new Art.Turn(StampTilts[i % StampTilts.Length], r.center))
-				{
-					// stamped on a scrap of paper so it reads on dark scenes
-					Art.PaperSheet(r);
-					Art.Outline(r, 3f, ink);
-					Art.Outline(new Rect(r.x + 4f, r.y + 4f, r.width - 8f, r.height - 8f), 1f, new Color(ink.r, ink.g, ink.b, alpha * 0.5f));
-					Art.Label(r, StampText(w), st, ink);
-				}
-				x += sizes[i].x + 22f;
+				Rect r = new Rect(x, center.y - h / 2f, widths[i], h);
+				float pulse = w.Severe ? 0.55f + 0.45f * Pulse : 1f;
+				Art.Form(r);
+				Rect inner = Art.Inner(r);
+				Art.Rect(new Rect(inner.x, inner.y, 22f, inner.height), new Color(w.Ink.r, w.Ink.g, w.Ink.b, pulse));
+				Art.VRule(inner.x + 22f, inner.y, inner.height);
+				Art.Label(new Rect(inner.x + 32f, inner.y, inner.width - 34f, inner.height), Spaced(StampText(w)), st, w.Severe ? Art.Red : Art.Ink);
+				Art.Wear(r);
+				x += widths[i] + gap;
 			}
 		}
 
 		private static string StampText(GameData.Warning w)
 		{
 			string t = w.Text.ToUpperInvariant();
-			if (w.Text == "Police" || w.Text == "Rad" || w.Text == "Fungus") t += " · " + w.Level;
+			if (w.Text == "Police" || w.Text == "Rad" || w.Text == "Fungus") t += " " + w.Level;
 			return t;
 		}
 
 		// ---- Wristwatch and receipt wallet ----
 
-		private static void WatchAndReceipt(Vector2 topCenter)
+		private const float WalletW = 276f;
+
+		// Top right: the watch, and the wallet receipt under it, one aligned column.
+		private static void WatchAndReceipt(Vector2 topLeft)
 		{
-			float cx = topCenter.x;
-			// strap
-			Art.Rect(new Rect(cx - 46f, 0f, 92f, 46f), Art.Strap);
-			Art.Rect(new Rect(cx - 49f, 0f, 3f, 46f), new Color32(26, 20, 15, 255));
-			Art.Rect(new Rect(cx + 46f, 0f, 3f, 46f), new Color32(26, 20, 15, 255));
-			Rect face = new Rect(cx - 110f, 46f, 220f, 150f);
+			Rect face = new Rect(topLeft.x, topLeft.y, WalletW, 132f);
 			Watch(face, 70f);
-			Art.Rect(new Rect(cx - 46f, face.yMax, 92f, 22f), Art.Strap);
-			Receipt(new Rect(cx - 116f, face.yMax + 14f, 232f, 0f), 1.5f, true);
+			Receipt(new Rect(topLeft.x, face.yMax + 20f, WalletW, 0f), 0.4f, true);
 		}
 
 		private static void CompactWatchAndReceipt(Vector2 topLeft)
@@ -268,11 +257,14 @@ namespace DiegeticUIMod
 		{
 			Art.ShadowFor(face, 14f, 8f, 0.6f);
 			Art.Rect(face, Art.SteelLight);
-			Art.Rect(new Rect(face.x + 5f, face.y + 5f, face.width - 10f, face.height - 10f), new Color32(42, 42, 39, 255));
+			Art.Rect(new Rect(face.x + 4f, face.y + 4f, face.width - 8f, face.height - 8f), Art.Steel);
+			Art.Rect(new Rect(face.x + 4f, face.y + 4f, face.width - 8f, 1f), new Color(1f, 1f, 1f, 0.08f));
 			Rect screen = new Rect(face.x + face.width * 0.1f, face.y + face.height * 0.14f, face.width * 0.8f, face.height * 0.72f);
 			bool on = GameData.HasClock && GameData.Hours >= 0;
 			Art.Rect(screen, on ? Art.Lcd : Art.LcdOff);
 			Art.Rect(new Rect(screen.x, screen.y, screen.width, 3f), new Color(0, 0, 0, 0.25f));
+			// a scratch across the cheap plastic window
+			Art.Line(new Vector2(screen.x + screen.width * 0.62f, screen.y + 2f), new Vector2(screen.x + screen.width * 0.48f, screen.yMax - 2f), 1f, new Color(1f, 1f, 1f, 0.16f));
 			Color ghost = new Color(Art.LcdInk.r, Art.LcdInk.g, Art.LcdInk.b, on ? 0.08f : 0.12f);
 			float small = Mathf.Max(11f, screen.height * 0.17f);
 			if (on && GameData.HasCalendar && !string.IsNullOrEmpty(GameData.Weekday))
@@ -288,6 +280,7 @@ namespace DiegeticUIMod
 			Art.LcdTime(at, digitH, on ? GameData.Hours : -1, GameData.Minutes, on ? Art.LcdInk : new Color(Art.LcdInk.r, Art.LcdInk.g, Art.LcdInk.b, 0.35f), ghost);
 		}
 
+		// The wallet as a small ledger form: OC and RM rows, and the latest takings and payments under them.
 		private static void Receipt(Rect top, float tilt, bool lines)
 		{
 			float now = Time.unscaledTime;
@@ -295,54 +288,54 @@ namespace DiegeticUIMod
 			if (lines)
 				for (int i = GameData.Entries.Count - 1; i >= 0 && show.Count < 4; i--)
 					if (now - GameData.Entries[i].Born < 9f) show.Add(GameData.Entries[i]);
-			float big = top.width > 200f ? 24f : 18f;
-			float h = 16f + 12f + big * 2.3f + (show.Count > 0 ? 18f + show.Count * 20f : 0f) + 8f;
+			bool big = top.width > 200f;
+			float rowH = big ? 36f : 28f, headH = big ? 28f : 0f;
+			float h = 16f + headH + rowH * 2f + show.Count * 24f;
 			Rect r = new Rect(top.x, top.y, top.width, h);
-			using (new Art.Turn(tilt, r.center))
+			Art.Form(r);
+			Rect inner = Art.Inner(r);
+			float y = inner.y;
+			GUIStyle head = Art.Text(Art.TypeFont, 13, TextAnchor.MiddleCenter);
+			if (big)
 			{
-				Art.ShadowFor(new Rect(r.x, r.y, r.width, r.height + 8f), 10f, 6f, 0.5f);
-				Art.Tiled(r, Art.ReceiptTex, Color.white);
-				Art.Tiled(new Rect(r.x, r.yMax, r.width, 8f), Art.Zigzag, Color.white);
-				float y = r.y + 10f;
-				if (top.width > 200f)
+				Art.Label(new Rect(inner.x, y, inner.width, headH), Spaced("WALLET"), head, Art.Ink);
+				y += headH; Art.HRule(inner.x, y, inner.width);
+			}
+			float split = inner.x + (big ? 64f : 46f);
+			GUIStyle cur = Art.Text(Art.TypeFont, big ? 16 : 14, TextAnchor.MiddleCenter);
+			GUIStyle val = Art.Text(Art.TypeFont, big ? 24 : 18, TextAnchor.MiddleRight, true);
+			Color ink = Art.Ink;
+			Color ocInk = Flash(GameData.FlashOC, GameData.LastOCGain, ink), rmInk = Flash(GameData.FlashRM, GameData.LastRMGain, ink);
+			Art.Label(new Rect(inner.x, y, split - inner.x, rowH), "OC", cur, ink);
+			Art.Label(new Rect(split, y, inner.xMax - split - 12f, rowH), GameData.FormatOC(GameData.OC), val, ocInk);
+			y += rowH; Art.HRule(inner.x, y, inner.width);
+			Art.Label(new Rect(inner.x, y, split - inner.x, rowH), "RM", cur, ink);
+			Art.Label(new Rect(split, y, inner.xMax - split - 12f, rowH), GameData.FormatRM(GameData.RM), val, rmInk);
+			Art.VRule(split, inner.y + headH, rowH * 2f);
+			y += rowH;
+			if (show.Count > 0)
+			{
+				Art.HRule(inner.x, y, inner.width);
+				GUIStyle l = Art.Text(Art.TypeFont, 14, TextAnchor.MiddleLeft), rr = Art.Text(Art.TypeFont, 14, TextAnchor.MiddleRight);
+				foreach (var e in show)
 				{
-					Art.Label(new Rect(r.x, y, r.width, 16f), "— WALLET —", Art.Text(Art.ReceiptFont, 12, TextAnchor.UpperCenter), new Color32(109, 106, 98, 255));
-					y += 18f;
-				}
-				GUIStyle left = Art.Text(Art.ReceiptFont, Mathf.RoundToInt(big), TextAnchor.UpperLeft, true);
-				GUIStyle right = Art.Text(Art.ReceiptFont, Mathf.RoundToInt(big), TextAnchor.UpperRight, true);
-				Color ink = new Color32(44, 42, 38, 255);
-				Color ocInk = Flash(GameData.FlashOC, GameData.LastOCGain, ink), rmInk = Flash(GameData.FlashRM, GameData.LastRMGain, ink);
-				Art.Label(new Rect(r.x + 14f, y, 60f, big + 4f), "OC", left, ink);
-				Art.Label(new Rect(r.x, y, r.width - 14f, big + 4f), GameData.FormatOC(GameData.OC), right, ocInk);
-				y += big + 4f;
-				Art.Label(new Rect(r.x + 14f, y, 60f, big + 4f), "RM", left, ink);
-				Art.Label(new Rect(r.x, y, r.width - 14f, big + 4f), GameData.FormatRM(GameData.RM), right, rmInk);
-				y += big + 8f;
-				if (show.Count > 0)
-				{
-					for (float dx = r.x + 12f; dx < r.xMax - 12f; dx += 9f) Art.Rect(new Rect(dx, y, 5f, 2f), new Color32(185, 180, 168, 255));
-					y += 10f;
-					GUIStyle l = Art.Text(Art.ReceiptFont, 15, TextAnchor.UpperLeft), rr = Art.Text(Art.ReceiptFont, 15, TextAnchor.UpperRight);
-					foreach (var e in show)
-					{
-						float age = now - e.Born;
-						float a = Mathf.Clamp01(age / 0.25f) * Mathf.Clamp01((9f - age) / 1.2f);
-						Color c = e.Gain ? new Color32(47, 106, 42, 255) : new Color32(154, 42, 28, 255);
-						c.a = a;
-						Art.Label(new Rect(r.x + 14f, y, r.width - 28f, 20f), e.Gain ? "+ received" : "− paid", l, c);
-						Art.Label(new Rect(r.x, y, r.width - 14f, 20f), GameData.FormatDelta(e), rr, c);
-						y += 20f;
-					}
+					float age = now - e.Born;
+					float a = Mathf.Clamp01(age / 0.25f) * Mathf.Clamp01((9f - age) / 1.2f);
+					Color c = e.Gain ? (Color)Art.Olive : (Color)Art.Red;
+					c.a = a;
+					Art.Label(new Rect(inner.x + 10f, y, inner.width - 20f, 24f), e.Gain ? "+ received" : "- paid", l, c);
+					Art.Label(new Rect(inner.x, y, inner.width - 12f, 24f), GameData.FormatDelta(e), rr, c);
+					y += 24f;
 				}
 			}
+			Art.Wear(r);
 		}
 
 		private static Color Flash(float when, bool gain, Color normal)
 		{
 			float age = Time.unscaledTime - when;
 			if (when <= 0f || age > 1.6f) return normal;
-			Color f = gain ? new Color32(47, 106, 42, 255) : new Color32(154, 42, 28, 255);
+			Color f = gain ? (Color32)Art.Olive : (Color32)Art.Red;
 			return Color.Lerp(f, normal, Mathf.Clamp01((age - 0.8f) / 0.8f));
 		}
 
@@ -355,13 +348,13 @@ namespace DiegeticUIMod
 			if (bottomY >= 0f)
 			{
 				float total = 0f;
-				GUIStyle bm = Art.Text(Art.TypeFont, 19, TextAnchor.UpperLeft, false, true);
+				GUIStyle bm = Art.Text(Art.TypeFont, 18, TextAnchor.UpperLeft, false, true);
 				foreach (GameData.Slip sl in GameData.Slips)
-					total += 46f + (string.IsNullOrEmpty(sl.Body) ? 0f : bm.CalcHeight(new GUIContent(sl.Body), 430f - 36f)) + 14f;
+					total += 64f + (string.IsNullOrEmpty(sl.Body) ? 0f : bm.CalcHeight(new GUIContent(sl.Body), 430f - 36f)) + 14f;
 				y = Mathf.Max(at.y, bottomY - total);
 			}
-			GUIStyle head = Art.Text(Art.TypeFont, 13, TextAnchor.UpperLeft);
-			GUIStyle body = Art.Text(Art.TypeFont, 19, TextAnchor.UpperLeft, false, true);
+			GUIStyle head = Art.Text(Art.TypeFont, 14, TextAnchor.UpperLeft);
+			GUIStyle body = Art.Text(Art.TypeFont, 18, TextAnchor.UpperLeft, false, true);
 			const float w = 430f;
 			int i = 0;
 			foreach (GameData.Slip s in GameData.Slips)
@@ -370,17 +363,18 @@ namespace DiegeticUIMod
 				float aOut = s.Gone >= 0f ? 1f - Mathf.Clamp01((now - s.Gone) / 0.45f) : 1f;
 				float a = Mathf.SmoothStep(0f, 1f, aIn) * aOut;
 				float slide = (1f - Mathf.SmoothStep(0f, 1f, aIn)) * -40f;
-				float bodyH = string.IsNullOrEmpty(s.Body) ? 0f : body.CalcHeight(new GUIContent(s.Body), w - 36f);
-				Rect r = new Rect(at.x + slide + (i % 2 == 1 ? 16f : 0f), y, w - (i % 2 == 1 ? 40f : 0f), 14f + 18f + bodyH + 14f);
+				float bodyH = string.IsNullOrEmpty(s.Body) ? 0f : body.CalcHeight(new GUIContent(s.Body), w - 40f);
+				Rect r = new Rect(at.x + slide, y, w, 8f + 30f + 8f + bodyH + 18f);
 				float saved = Art.Alpha;
 				Art.Alpha = saved * a;
-				using (new Art.Turn(s.Tilt, r.center))
-				{
-					Art.PaperSheet(r);
-					if (i == 0) Art.TapeStrip(new Rect(r.x + r.width * 0.36f, r.y - 10f, 90f, 22f));
-					Art.Label(new Rect(r.x + 18f, r.y + 12f, r.width - 36f, 16f), Spaced(s.Head), head, s.Ink);
-					Art.Label(new Rect(r.x + 18f, r.y + 32f, r.width - 36f, bodyH + 4f), s.Body, body, Art.Ink);
-				}
+				Art.Form(r);
+				Rect inner = Art.Inner(r);
+				Art.Rect(new Rect(inner.x, inner.y, 14f, 30f), s.Ink);
+				Art.VRule(inner.x + 14f, inner.y, 30f);
+				Art.Label(new Rect(inner.x + 24f, inner.y + 7f, inner.width - 30f, 18f), Spaced(s.Head), head, Art.Ink);
+				Art.HRule(inner.x, inner.y + 30f, inner.width);
+				Art.Label(new Rect(inner.x + 12f, inner.y + 38f, inner.width - 24f, bodyH + 4f), s.Body, body, Art.Ink);
+				Art.Wear(r);
 				Art.Alpha = saved;
 				y += r.height + 14f;
 				i++;
@@ -399,104 +393,89 @@ namespace DiegeticUIMod
 
 		private static void Tags(float margin)
 		{
-			if (GameData.Left.Any) Tag(new Rect(margin + 16f, vh - margin - 96f - 12f, 190f, 96f), GameData.Left, -3f, true);
-			if (GameData.Right.Any) Tag(new Rect(vw - margin - 16f - 190f, vh - margin - 96f - 12f, 190f, 96f), GameData.Right, 3f, false);
+			if (GameData.Left.Any) Tag(new Rect(margin + 12f, vh - margin - 96f - 12f, 260f, 96f), GameData.Left, 0f, false);
+			if (GameData.Right.Any) Tag(new Rect(vw - margin - 12f - 260f, vh - margin - 96f - 12f, 260f, 96f), GameData.Right, 0f, true);
 		}
 
-		private static void Tag(Rect r, GameData.Hand h, float tilt, bool holeRight)
+		// An equipped item as a ruled card: the item in a cell, its name over its amount and a bar.
+		private static void Tag(Rect r, GameData.Hand h, float tilt, bool iconRight)
 		{
-			using (new Art.Turn(tilt, r.center))
+			Art.Form(r);
+			Rect inner = Art.Inner(r);
+			Rect icon = iconRight ? new Rect(inner.xMax - inner.height, inner.y, inner.height, inner.height) : new Rect(inner.x, inner.y, inner.height, inner.height);
+			Art.VRule(iconRight ? icon.x : icon.xMax, inner.y, inner.height);
+			Art.Sprite(new Rect(icon.x + 8f, icon.y + 8f, icon.width - 16f, icon.height - 16f), h.Icon, Color.white);
+			float tx = (iconRight ? inner.x : icon.xMax) + 12f, tw = inner.width - icon.width - 24f;
+			string title = h.Name.ToUpperInvariant();
+			int size = 13;
+			GUIStyle name = Art.Text(Art.TypeFont, size, TextAnchor.UpperLeft);
+			while (size > 8 && Art.Measure(title, name).x > tw) name = Art.Text(Art.TypeFont, --size, TextAnchor.UpperLeft);
+			Art.Label(new Rect(tx, inner.y + 8f, tw, 16f), title, name, Art.Ink);
+			Art.HRule(iconRight ? inner.x : icon.xMax, inner.y + 30f, inner.width - icon.width);
+			bool low = h.Fill >= 0f && h.Fill < 0.2f;
+			if (!string.IsNullOrEmpty(h.Amount))
+				Art.Label(new Rect(tx, inner.y + 34f, tw, 26f), h.Amount, Art.Text(Art.TypeFont, 20, TextAnchor.UpperLeft, true), low ? Art.Red : Art.Ink);
+			if (h.Fill >= 0f)
 			{
-				Art.PaperSheet(r);
-				Vector2 hole = holeRight ? new Vector2(r.xMax - 18f, r.center.y) : new Vector2(r.x + 18f, r.center.y);
-				Art.Circle(hole, 8f, new Color32(185, 169, 138, 255));
-				Art.Circle(hole, 5f, new Color32(26, 23, 18, 255));
-				float x = holeRight ? r.x + 12f : r.x + 34f;
-				Art.Sprite(new Rect(x, r.y + 14f, 64f, 64f), h.Icon, Color.white);
-				float tx = x + 72f, tw = r.width - (tx - r.x) - (holeRight ? 30f : 10f);
-				// the name on one line, shrunk to fit
-				string title = h.Name.ToUpperInvariant();
-				int size = 12;
-				GUIStyle name = Art.Text(Art.TypeFont, size, TextAnchor.UpperLeft);
-				while (size > 8 && Art.Measure(title, name).x > tw) name = Art.Text(Art.TypeFont, --size, TextAnchor.UpperLeft);
-				Art.Label(new Rect(tx, r.y + 16f, tw, 16f), title, name, Art.Ink);
-				bool low = h.Fill >= 0f && h.Fill < 0.2f;
-				if (h.Fill >= 0f)
-				{
-					if (h.Battery)
-					{
-						int segs = h.Fill <= 0.001f ? 0 : h.Fill < 0.34f ? 1 : h.Fill < 0.67f ? 2 : 3;
-						for (int i = 0; i < 3; i++)
-						{
-							Rect sr = new Rect(tx + i * 17f, r.y + 38f, 14f, 16f);
-							if (i < segs) Art.Rect(sr, low ? Art.Red : Art.Reserve(h.Fill * 100f)); else Art.Outline(sr, 2f, Art.InkSoft);
-						}
-						Art.Rect(new Rect(tx + 51f, r.y + 42f, 4f, 8f), Art.InkSoft);
-					}
-					else
-					{
-						Rect bar = new Rect(tx, r.y + 42f, Mathf.Min(62f, tw), 9f);
-						Art.Rect(new Rect(bar.x, bar.y, bar.width * h.Fill, bar.height), low ? Art.Red : Art.Reserve(h.Fill * 100f));
-						Art.Outline(bar, 2f, Art.InkSoft);
-					}
-				}
-				if (!string.IsNullOrEmpty(h.Amount))
-					Art.Label(new Rect(tx, r.y + 58f, tw, 26f), h.Amount, Art.Text(Art.HandFont, 20, TextAnchor.UpperLeft, true), low ? Art.Red : Art.Ink);
+				Rect bar = new Rect(tx, inner.yMax - 18f, tw, 10f);
+				Art.Outline(bar, 2f, Art.Rule);
+				Art.Rect(new Rect(bar.x + 2f, bar.y + 2f, (bar.width - 4f) * Mathf.Clamp01(h.Fill), bar.height - 4f), low ? Art.Red : Art.Reserve(h.Fill * 100f));
 			}
+			Art.Wear(r);
 		}
 
 		// ---- Menus: the status clipboard ----
 
+		// The status sheet: a ruled form held by a clip, CONDITION and NOTES tables.
 		private static void Clipboard(Rect r)
 		{
-			Art.ShadowFor(r, 16f, 10f, 0.6f);
-			Art.Rect(r, new Color32(122, 90, 52, 255));
-			Art.Outline(r, 3f, new Color32(94, 68, 38, 255));
-			Rect clip = new Rect(r.center.x - 50f, r.y - 14f, 100f, 42f);
+			Art.Form(r);
+			Rect clip = new Rect(r.center.x - 56f, r.y - 16f, 112f, 30f);
 			Art.ShadowFor(clip, 6f, 3f, 0.5f);
-			Art.Rect(clip, new Color32(154, 154, 148, 255));
-			Art.Rect(new Rect(clip.x, clip.yMax - 6f, clip.width, 6f), new Color32(111, 111, 106, 255));
-			Rect sheet = new Rect(r.x + 18f, r.y + 34f, r.width - 36f, r.height - 52f);
-			Art.PaperSheet(sheet, false);
-
-			GUIStyle h = Art.Text(Art.TypeFont, 15, TextAnchor.UpperLeft);
-			GUIStyle row = Art.Text(Art.TypeFont, 15, TextAnchor.UpperLeft);
-			GUIStyle num = Art.Text(Art.HandFont, 26, TextAnchor.UpperRight, true);
-			float x = sheet.x + 22f, w = sheet.width - 44f, y = sheet.y + 20f;
-			Art.Label(new Rect(x, y, w, 20f), Spaced("CONDITION"), h, Art.Ink);
-			y += 22f; Art.Rect(new Rect(x, y, w, 2f), Art.Ink); y += 14f;
-			Row(ref y, x, w, "Health", GameData.Health, row, num);
-			Row(ref y, x, w, "Mind", GameData.Mind, row, num);
-			Row(ref y, x, w, "Food", GameData.Food, row, num);
-			Row(ref y, x, w, "Water", GameData.Water, row, num);
-			Row(ref y, x, w, "Rest", GameData.Rest, row, num);
-			Row(ref y, x, w, "Toilet", GameData.Toilet, row, num);
-			Row(ref y, x, w, "Clean", GameData.Clean, row, num);
-			y += 16f;
-			Art.Label(new Rect(x, y, w, 20f), Spaced("NOTES"), h, Art.Ink);
-			y += 22f; Art.Rect(new Rect(x, y, w, 2f), Art.Ink); y += 10f;
-			GUIStyle pen = Art.Text(Art.HandFont, 23, TextAnchor.UpperLeft, true, true);
+			Art.Rect(clip, new Color32(130, 130, 128, 255));
+			Art.Rect(new Rect(clip.x, clip.yMax - 8f, clip.width, 8f), new Color32(79, 79, 77, 255));
+			Rect inner = Art.Inner(r);
+			GUIStyle h = Art.Text(Art.TypeFont, 15, TextAnchor.MiddleCenter);
+			GUIStyle row = Art.Text(Art.TypeFont, 15, TextAnchor.MiddleLeft);
+			GUIStyle num = Art.Text(Art.TypeFont, 20, TextAnchor.MiddleCenter, true);
+			float x = inner.x, w = inner.width, y = inner.y + 20f;
+			Art.Label(new Rect(x, y - 20f, w, 36f), Spaced("CONDITION"), h, Art.Ink);
+			y += 16f; Art.HRule(x, y, w);
+			float top = y;
+			string[] names = { "Health", "Mind", "Food", "Water", "Rest", "Toilet", "Clean" };
+			float[] vals = { GameData.Health, GameData.Mind, GameData.Food, GameData.Water, GameData.Rest, GameData.Toilet, GameData.Clean };
+			for (int i = 0; i < names.Length; i++) Row(ref y, x, w, names[i], vals[i], row, num);
+			Art.VRule(x + w - 58f, top, y - top);
+			Art.Label(new Rect(x, y + 4f, w, 36f), Spaced("NOTES"), h, Art.Ink);
+			y += 40f; Art.HRule(x, y, w); y += 6f;
+			GUIStyle note = Art.Text(Art.TypeFont, 16, TextAnchor.MiddleLeft, false, true);
 			if (GameData.Warnings.Count == 0)
-				Art.Label(new Rect(x, y, w, 28f), "nothing to worry about", pen, new Color(Art.Blue.r, Art.Blue.g, Art.Blue.b, 0.7f));
+				Art.Label(new Rect(x + 12f, y, w - 24f, 28f), "Nothing to worry about.", note, Art.InkFaint);
 			foreach (var wn in GameData.Warnings)
 			{
-				if (y > sheet.yMax - 40f) break;
+				if (y > inner.yMax - 34f) break;
 				string t = wn.Text + (wn.Text == "Police" || wn.Text == "Rad" || wn.Text == "Fungus" ? ": " + wn.Level : "");
-				Art.Label(new Rect(x, y, w, 28f), t, pen, wn.Severe ? Art.Red : Art.Blue);
-				y += 27f;
+				Art.Rect(new Rect(x + 12f, y + 10f, 9f, 9f), wn.Ink);
+				Art.Label(new Rect(x + 30f, y, w - 40f, 28f), t, note, wn.Severe ? Art.Red : Art.Ink);
+				y += 28f;
+				Art.HRule(x, y, w);
 			}
+			Art.Wear(r);
 		}
 
+		// A ruled row: name | bar | value
 		private static void Row(ref float y, float x, float w, string label, float v, GUIStyle row, GUIStyle num)
 		{
 			bool critical = v < 10f;
 			Color ink = critical ? Art.Red : Art.Ink;
-			Art.Label(new Rect(x, y + 6f, w, 20f), label, row, ink);
-			Art.Label(new Rect(x, y - 2f, w, 30f), Mathf.RoundToInt(v) + (critical ? " !" : ""), num, ink);
-			// a short ink bar under the number
-			float bw = 64f;
-			Art.Rect(new Rect(x + w - bw - 58f, y + 16f, bw * Mathf.Clamp01(v / 100f), 4f), Art.Reserve(v));
-			y += 34f;
+			const float rh = 38f;
+			Art.Label(new Rect(x + 12f, y, 90f, rh), label, row, ink);
+			Rect bar = new Rect(x + 96f, y + rh / 2f - 5f, w - 96f - 72f, 10f);
+			Art.Outline(bar, 2f, Art.Rule);
+			Art.Rect(new Rect(bar.x + 2f, bar.y + 2f, (bar.width - 4f) * Mathf.Clamp01(v / 100f), bar.height - 4f), Art.Reserve(v));
+			Art.Label(new Rect(x + w - 58f, y, 58f, rh), Mathf.RoundToInt(v) + (critical ? "!" : ""), num, ink);
+			y += rh;
+			Art.HRule(x, y, w);
 		}
 
 		// ---- Menus: manila folder tabs and the storage box label (drawn over the game's own, which still take the clicks) ----
@@ -535,14 +514,16 @@ namespace DiegeticUIMod
 				float h = sel ? r.height + 8f : r.height - 2f;
 				Rect tab = new Rect(r.x + 2f, r.yMax - h, r.width - 4f, h);
 				Art.ShadowFor(tab, 6f, 3f, 0.45f);
-				Art.Tiled(tab, Art.PaperTex, sel ? new Color(0.93f, 0.85f, 0.67f, 1f) : new Color(0.72f, 0.66f, 0.5f, 1f));
-				// rounded-looking top corners
-				Color bg = new Color32(28, 25, 21, 255);
-				Art.Rect(new Rect(tab.x, tab.y, 4f, 3f), bg); Art.Rect(new Rect(tab.x, tab.y, 2f, 6f), bg);
-				Art.Rect(new Rect(tab.xMax - 4f, tab.y, 4f, 3f), bg); Art.Rect(new Rect(tab.xMax - 2f, tab.y, 2f, 6f), bg);
-				if (sel) Art.Rect(new Rect(tab.x + 6f, tab.yMax - 3f, tab.width - 12f, 3f), new Color32(185, 166, 112, 255));
+				if (sel)
+				{
+					// the game's own amber for the open page
+					Art.Rect(tab, Art.AmberDark);
+					Art.Rect(new Rect(tab.x, tab.y, tab.width, tab.height * 0.55f), Art.Amber);
+					Art.Rect(new Rect(tab.x, tab.y, tab.width, 1f), new Color(1f, 1f, 1f, 0.18f));
+				}
+				else { Art.Tiled(tab, Art.PaperTex, Color.white); Art.Outline(new Rect(tab.x + 3f, tab.y + 3f, tab.width - 6f, tab.height - 3f), 1f, new Color(Art.Rule.r, Art.Rule.g, Art.Rule.b, 0.6f)); }
 				string label = PageTitle(p.Name);
-				Art.Label(tab, Spaced((label ?? "").ToUpperInvariant()), sel ? on : off, sel ? Art.Ink : (Color)new Color32(58, 50, 35, 255));
+				Art.Label(tab, Spaced((label ?? "").ToUpperInvariant()), sel ? on : off, sel ? Art.Cream : Art.InkSoft);
 			}
 		}
 
@@ -573,12 +554,13 @@ namespace DiegeticUIMod
 			string text = BoxLabel(tmp.text);
 			GUIStyle st = Art.Text(Art.TypeFont, 17, TextAnchor.MiddleLeft, true);
 			float w = Mathf.Min(Mathf.Max(r.width, Art.Measure(text, st).x + 28f), r.width + 60f);
-			Rect label = new Rect(r.x - 6f, r.center.y - 18f, w, 36f);
-			using (new Art.Turn(-1f, label.center))
-			{
-				Art.PaperSheet(label);
-				Art.Label(new Rect(label.x + 14f, label.y, label.width - 20f, label.height), text, st, Art.Ink);
-			}
+			Rect label = new Rect(r.x - 6f, r.center.y - 22f, w + 30f, 44f);
+			Art.Form(label);
+			Rect inner = Art.Inner(label);
+			Art.Rect(new Rect(inner.x, inner.y, 14f, inner.height), Art.Amber);
+			Art.VRule(inner.x + 14f, inner.y, inner.height);
+			Art.Label(new Rect(inner.x + 24f, inner.y, inner.width - 28f, inner.height), text, st, Art.Ink);
+			Art.Wear(label);
 		}
 
 		// "Bank Inventory — Page 2/4" -> "BANK · box 2 of 4"; other storages keep their name.

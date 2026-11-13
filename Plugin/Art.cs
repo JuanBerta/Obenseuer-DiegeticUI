@@ -7,48 +7,62 @@ namespace DiegeticUIMod
 	/// <summary>Generated textures, fonts and the small drawing toolkit the HUD is built from.</summary>
 	internal static class Art
 	{
-		// ---- Palette ----
-		internal static readonly Color Paper = new Color32(233, 224, 201, 255);
-		internal static readonly Color PaperDark = new Color32(217, 199, 156, 255);
-		internal static readonly Color Ink = new Color32(43, 36, 24, 255);
-		internal static readonly Color InkSoft = new Color32(59, 49, 34, 255);
-		internal static readonly Color Red = new Color32(154, 42, 28, 255);
-		internal static readonly Color StampRed = new Color32(163, 35, 26, 255);
-		internal static readonly Color Green = new Color32(63, 107, 46, 255);
-		internal static readonly Color Olive = new Color32(125, 138, 34, 255);
-		internal static readonly Color Mustard = new Color32(138, 122, 34, 255);
-		internal static readonly Color Rust = new Color32(160, 90, 28, 255);
-		internal static readonly Color Blue = new Color32(42, 74, 122, 255);
-		internal static readonly Color Brown = new Color32(107, 74, 20, 255);
-		internal static readonly Color Tape = new Color32(221, 203, 156, 215);
-		internal static readonly Color Receipt = new Color32(241, 238, 230, 255);
-		internal static readonly Color Lcd = new Color32(154, 167, 138, 255);
-		internal static readonly Color LcdOff = new Color32(111, 122, 98, 255);
-		internal static readonly Color LcdInk = new Color32(31, 38, 26, 255);
-		internal static readonly Color Steel = new Color32(59, 59, 56, 255);
-		internal static readonly Color SteelLight = new Color32(85, 85, 79, 255);
-		internal static readonly Color Strap = new Color32(42, 33, 25, 255);
+		// ---- Palette (sampled from the game's own menus and world) ----
+		internal static readonly Color Paper = new Color32(187, 185, 176, 255);        // drawing-sheet grey, from the game's Tenement page
+		internal static readonly Color PaperDark = new Color32(166, 164, 156, 255);
+		internal static readonly Color Ink = new Color32(52, 52, 49, 255);              // the drawing's ink (lines and type)
+		internal static readonly Color InkSoft = new Color32(70, 70, 66, 255);
+		internal static readonly Color InkFaint = new Color32(98, 97, 92, 255);
+		internal static readonly Color Rule = new Color32(69, 68, 63, 255);              // the drawing's cell lines
+		internal static readonly Color Cream = new Color32(236, 235, 230, 255);         // light text on cardboard
+		internal static readonly Color CreamSoft = new Color32(222, 219, 210, 255);
+		internal static readonly Color Red = new Color32(129, 28, 28, 255);             // skill-bar blood red
+		internal static readonly Color StampRed = new Color32(129, 28, 28, 255);
+		internal static readonly Color Oxblood = new Color32(89, 40, 42, 255);          // the game's Sort button
+		internal static readonly Color Green = new Color32(115, 130, 35, 255);          // skill-bar olive
+		internal static readonly Color Olive = new Color32(115, 130, 35, 255);
+		internal static readonly Color Mustard = new Color32(128, 118, 29, 255);
+		internal static readonly Color Rust = new Color32(132, 86, 29, 255);            // skill-bar amber
+		internal static readonly Color Amber = new Color32(140, 94, 20, 255);           // the game's active tab
+		internal static readonly Color AmberDark = new Color32(111, 74, 13, 255);
+		internal static readonly Color AmberLight = new Color32(200, 138, 30, 255);
+		internal static readonly Color Blue = new Color32(19, 73, 110, 255);            // the game's steel blue
+		internal static readonly Color Brown = new Color32(132, 86, 29, 255);
+		internal static readonly Color Board = new Color32(102, 85, 58, 255);           // cardboard
+		internal static readonly Color Tape = new Color32(143, 141, 134, 245);          // duct tape
+		internal static readonly Color Receipt = new Color32(187, 185, 176, 255);
+		internal static readonly Color Lcd = new Color32(154, 166, 107, 255);
+		internal static readonly Color LcdOff = new Color32(124, 135, 80, 255);
+		internal static readonly Color LcdInk = new Color32(29, 36, 16, 255);
+		internal static readonly Color Steel = new Color32(53, 52, 49, 255);
+		internal static readonly Color SteelLight = new Color32(78, 77, 73, 255);
+		internal static readonly Color Strap = new Color32(28, 27, 25, 255);
+		internal static readonly Color Well = new Color32(43, 43, 42, 255);             // the dark slot a meter sits in
+		internal static readonly Color Stain = new Color32(110, 80, 40, 255);
 
-		// Reserve colour: green when full, through olive and mustard, to rust and red near empty.
+		// Reserve colour, the game's own skill-bar colours: olive when fine, amber when getting low, red when critical.
 		internal static Color Reserve(float v)
 		{
-			if (v >= 70f) return Green;
-			if (v >= 50f) return Color.Lerp(Olive, Green, (v - 50f) / 20f);
-			if (v >= 30f) return Color.Lerp(Mustard, Olive, (v - 30f) / 20f);
-			if (v >= 10f) return Color.Lerp(Rust, Mustard, (v - 10f) / 20f);
+			if (v >= 75f) return Olive;
+			if (v >= 60f) return Color.Lerp(Mustard, Olive, (v - 60f) / 15f);
+			if (v >= 40f) return Color.Lerp(Rust, Mustard, (v - 40f) / 20f);
+			if (v >= 20f) return Color.Lerp(Red, Rust, (v - 20f) / 20f);
 			return Red;
 		}
 
 		// ---- Textures ----
-		internal static Texture2D White, PaperTex, ReceiptTex, TapeTex, Shadow, Disk, Ring, Zigzag;
+		internal static Texture2D White, PaperTex, ReceiptTex, TapeTex, BoardTex, WearTex, Octagon, Shadow, Disk, Ring, Zigzag;
 
 		internal static void Init()
 		{
 			if (White != null) return;
 			White = Solid(Color.white);
-			PaperTex = Noise(128, Paper, 0.06f, 7);
+			PaperTex = Mottled(256, Paper, 7);
+			WearTex = Specks(256, 13);
+			Octagon = MakeOctagon(64);
 			ReceiptTex = Noise(64, Receipt, 0.025f, 11);
-			TapeTex = Noise(64, Tape, 0.05f, 3);
+			TapeTex = Stripes(64, Tape);
+			BoardTex = Noise(128, Board, 0.05f, 5);
 			Shadow = MakeShadow(48);
 			Disk = MakeDisk(64, false);
 			Ring = MakeDisk(64, true);
@@ -83,6 +97,87 @@ namespace DiegeticUIMod
 					// a few long fibres
 					if (rnd.Next(90) == 0) n -= amount * 1.5f;
 					px[y * size + x] = new Color(Mathf.Clamp01(baseColor.r + n), Mathf.Clamp01(baseColor.g + n), Mathf.Clamp01(baseColor.b + n * 1.2f), baseColor.a);
+				}
+			t.SetPixels(px);
+			t.Apply();
+			return t;
+		}
+
+		// Drawing paper: large soft blotches plus fine grain.
+		private static Texture2D Mottled(int size, Color baseColor, int seed)
+		{
+			var t = NewTex(size, size);
+			t.wrapMode = TextureWrapMode.Repeat;
+			var rnd = new System.Random(seed);
+			var px = new Color[size * size];
+			float ox = rnd.Next(1000), oy = rnd.Next(1000);
+			for (int y = 0; y < size; y++)
+				for (int x = 0; x < size; x++)
+				{
+					float blot = (Mathf.PerlinNoise(ox + x * 0.035f, oy + y * 0.035f) - 0.5f) * 0.07f;
+					float grain = (float)(rnd.NextDouble() - 0.5) * 0.035f;
+					float n = blot + grain;
+					px[y * size + x] = new Color(Mathf.Clamp01(baseColor.r + n), Mathf.Clamp01(baseColor.g + n), Mathf.Clamp01(baseColor.b + n * 0.9f), 1f);
+				}
+			t.SetPixels(px);
+			t.Apply();
+			return t;
+		}
+
+		// Wear laid over a printed form: small paper-coloured specks and scuffs that break up lines and type.
+		private static Texture2D Specks(int size, int seed)
+		{
+			var t = NewTex(size, size);
+			t.wrapMode = TextureWrapMode.Repeat;
+			var rnd = new System.Random(seed);
+			var px = new Color[size * size];
+			Color clear = new Color(Paper.r, Paper.g, Paper.b, 0f);
+			for (int i = 0; i < px.Length; i++) px[i] = clear;
+			for (int k = 0; k < 140; k++)
+			{
+				int cx = rnd.Next(size), cy = rnd.Next(size);
+				int len = rnd.Next(1, 5), thick = rnd.Next(1, 3);
+				float a = 0.55f + (float)rnd.NextDouble() * 0.4f;
+				Color c = new Color(Mathf.Clamp01(Paper.r + 0.06f), Mathf.Clamp01(Paper.g + 0.06f), Mathf.Clamp01(Paper.b + 0.06f), a);
+				for (int dx = 0; dx < len; dx++)
+					for (int dy = 0; dy < thick; dy++)
+						px[((cy + dy) % size) * size + (cx + dx) % size] = c;
+			}
+			t.SetPixels(px);
+			t.Apply();
+			return t;
+		}
+
+		// The game's octagonal badge shape (its Tenement icons).
+		private static Texture2D MakeOctagon(int size)
+		{
+			var t = NewTex(size, size);
+			var px = new Color[size * size];
+			float r = size / 2f - 1f;
+			for (int y = 0; y < size; y++)
+				for (int x = 0; x < size; x++)
+				{
+					float dx = Mathf.Abs(x + 0.5f - size / 2f), dy = Mathf.Abs(y + 0.5f - size / 2f);
+					float d = Mathf.Max(Mathf.Max(dx, dy), (dx + dy) / 1.41421f);
+					px[y * size + x] = new Color(1, 1, 1, Mathf.Clamp01(r - d + 0.5f));
+				}
+			t.SetPixels(px);
+			t.Apply();
+			return t;
+		}
+
+		// Duct tape: grey with fine lengthwise threads.
+		private static Texture2D Stripes(int size, Color baseColor)
+		{
+			var t = NewTex(size, size);
+			t.wrapMode = TextureWrapMode.Repeat;
+			var rnd = new System.Random(3);
+			var px = new Color[size * size];
+			for (int y = 0; y < size; y++)
+				for (int x = 0; x < size; x++)
+				{
+					float n = (x % 5 < 2 ? 0.035f : 0f) + (float)(rnd.NextDouble() - 0.5) * 0.04f;
+					px[y * size + x] = new Color(Mathf.Clamp01(baseColor.r + n), Mathf.Clamp01(baseColor.g + n), Mathf.Clamp01(baseColor.b + n), baseColor.a);
 				}
 			t.SetPixels(px);
 			t.Apply();
@@ -148,12 +243,55 @@ namespace DiegeticUIMod
 		// ---- Fonts ----
 		internal static Font TypeFont, HandFont, ReceiptFont;
 
+		private static float nextFontTry;
+		private static bool gameFontFound;
+
 		private static void LoadFonts()
 		{
-			TypeFont = GameFont(new[] { "typewriter", "special", "elite", "courier", "mono" }) ?? Os("Courier New", "Lucida Console", "Consolas");
-			HandFont = Os("Ink Free", "Segoe Print", "Comic Sans MS", "Segoe Script") ?? TypeFont;
-			ReceiptFont = Os("Courier New", "Lucida Console", "Consolas") ?? TypeFont;
+			TypeFont = Os("Lucida Sans Typewriter", "Courier New", "Lucida Console", "Consolas");
+			HandFont = TypeFont;
+			ReceiptFont = TypeFont;
+			RefreshFonts();
 		}
+
+		// The game's menus are set in a typewriter face (a TextMeshPro font). When its source font is loaded, the
+		// HUD uses it too, so both read as one; until then a typewriter-like system font stands in.
+		internal static void RefreshFonts()
+		{
+			if (gameFontFound || Time.unscaledTime < nextFontTry) return;
+			nextFontTry = Time.unscaledTime + 5f;
+			Font f = GameTypewriter();
+			if (f == null) return;
+			gameFontFound = true;
+			TypeFont = HandFont = ReceiptFont = f;
+			DiegeticPlugin.Log.LogInfo("Using the game's menu font '" + f.name + "'.");
+		}
+
+		private static Font GameTypewriter()
+		{
+			try
+			{
+				UIPageButtons ui = UIPageButtons.instance;
+				if (ui == null) return null;
+				foreach (TMPro.TextMeshProUGUI t in ui.GetComponentsInChildren<TMPro.TextMeshProUGUI>(true))
+				{
+					if (t == null || t.font == null) continue;
+					var prop = typeof(TMPro.TMP_FontAsset).GetProperty("sourceFontFile");
+					Font src = prop != null ? prop.GetValue(t.font, null) as Font : null;
+					if (src != null) return src;
+					// a static font asset keeps no source font in a build: look for a loaded font of the same name
+					string want = t.font.name.ToLowerInvariant().Replace(" sdf", "").Replace("sdf", "").Trim();
+					foreach (Font lf in Resources.FindObjectsOfTypeAll<Font>())
+						if (lf != null && !string.IsNullOrEmpty(lf.name) && lf.name.ToLowerInvariant().Contains(want)) return lf;
+					if (!loggedFont) { loggedFont = true; DiegeticPlugin.Log.LogInfo("The game's menu font '" + t.font.name + "' has no loadable source font; using a system typewriter font."); }
+					gameFontFound = true;   // nothing more to find
+					return null;
+				}
+			}
+			catch (Exception) { }
+			return null;
+		}
+		private static bool loggedFont;
 
 		private static Font Os(params string[] names)
 		{
@@ -235,16 +373,58 @@ namespace DiegeticUIMod
 		internal static void PaperSheet(Rect r, bool shadow = true)
 		{
 			if (shadow) ShadowFor(r);
-			Tiled(r, PaperTex, Color.white);
-			// a soft darker rim, like the edge of old paper
-			Color rim = new Color(0.47f, 0.35f, 0.16f, 0.10f);
-			Rect(new Rect(r.x, r.y, r.width, 3f), rim);
-			Rect(new Rect(r.x, r.yMax - 3f, r.width, 3f), rim);
-			Rect(new Rect(r.x, r.y, 3f, r.height), rim);
-			Rect(new Rect(r.xMax - 3f, r.y, 3f, r.height), rim);
+			Tiled(r, PaperTex, Color.white, 1f);
+		}
+
+		// A printed form, like the game's Tenement drawing: grey sheet, a ruled border inset from the edge.
+		internal static void Form(Rect r, bool shadow = true)
+		{
+			PaperSheet(r, shadow);
+			Outline(new Rect(r.x + 6f, r.y + 6f, r.width - 12f, r.height - 12f), 2f, Rule);
+		}
+
+		// The inside of a form (inside its border).
+		internal static Rect Inner(Rect r) { return new Rect(r.x + 8f, r.y + 8f, r.width - 16f, r.height - 16f); }
+
+		internal static void HRule(float x, float y, float w) { Rect(new Rect(x, y - 1f, w, 2f), Rule); }
+		internal static void VRule(float x, float y, float h) { Rect(new Rect(x - 1f, y, 2f, h), Rule); }
+
+		// Wear over a finished form: specks and scuffs over its lines and type.
+		internal static void Wear(Rect r) { Tiled(r, WearTex, Color.white, 1f); }
+
+		internal static void Badge(Vector2 c, float radius, Color fill)
+		{
+			Tex(new Rect(c.x - radius, c.y - radius, radius * 2f, radius * 2f), Octagon, Rule);
+			Tex(new Rect(c.x - radius + 3f, c.y - radius + 3f, radius * 2f - 6f, radius * 2f - 6f), Octagon, fill);
 		}
 
 		internal static void TapeStrip(Rect r) { Tiled(r, TapeTex, Color.white); }
+
+		// A piece of cardboard: stained, with a faint top edge.
+		internal static void Cardboard(Rect r, bool shadow = true)
+		{
+			if (shadow) ShadowFor(r, 14f, 8f, 0.6f);
+			Tiled(r, BoardTex, Color.white);
+			Tex(new Rect(r.x + r.width * 0.12f, r.y + r.height * 0.45f, r.height * 0.7f, r.height * 0.7f), Disk, new Color(0, 0, 0, 0.12f));
+			Tex(new Rect(r.x + r.width * 0.72f, r.y - r.height * 0.1f, r.height * 0.55f, r.height * 0.55f), Disk, new Color(0, 0, 0, 0.09f));
+			Rect(new Rect(r.x, r.y, r.width, 1f), new Color(1f, 1f, 1f, 0.1f));
+			Rect(new Rect(r.x, r.yMax - 2f, r.width, 2f), new Color(0f, 0f, 0f, 0.2f));
+		}
+
+		// A strip of duct tape across a corner.
+		internal static void DuctCorner(Vector2 corner, bool left)
+		{
+			Rect strip = new Rect(corner.x - 26f, corner.y - 9f, 52f, 18f);
+			using (new Turn(left ? -35f : 35f, corner)) Tiled(strip, TapeTex, Color.white);
+		}
+
+		internal static void CoffeeRing(Vector2 c, float radius)
+		{
+			Tex(new Rect(c.x - radius, c.y - radius, radius * 2f, radius * 2f), Ring, new Color(Stain.r, Stain.g, Stain.b, 0.22f));
+		}
+
+		// A small coloured square, the status mark used in labels.
+		internal static void Mark(Rect r, Color c) { Rect(r, c); }
 
 		internal static void Outline(Rect r, float t, Color c)
 		{

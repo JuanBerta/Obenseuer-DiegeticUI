@@ -7,21 +7,25 @@ using UnityEngine.UI;
 namespace DiegeticUIMod
 {
 	/// <summary>
-	/// Gives the game's menu pages the desk look: dark frames become cardboard, dark rows and cards become manila
+	/// Gives the game's menu pages the grime-and-scraps look: dark frames become cardboard, dark rows and cards become grey
 	/// paper, and the light text on them becomes ink. Only colours change (the game's own panels, buttons and
 	/// layout stay), item slots/icons/tooltips are left alone, and every original colour is put back when the
 	/// theme is turned off.
 	/// </summary>
 	internal static class MenuTheme
 	{
-		private static readonly Color Cardboard = new Color32(92, 70, 44, 255);
-		private static readonly Color CardboardDark = new Color32(66, 50, 32, 255);
-		private static readonly Color Manila = new Color32(214, 196, 152, 255);
-		private static readonly Color ManilaLight = new Color32(232, 220, 188, 255);
-		private static readonly Color InkText = new Color32(43, 36, 24, 255);
-		private static readonly Color CreamText = new Color32(240, 228, 205, 255);
+		// The game's Tenement-drawing look: cardboard frames, drawing-sheet grey paper, its grey ink.
+		// frames are the drawing sheet itself now (no more cardboard); rows and cards on it a lighter sheet with ruled edges
+		private static readonly Color Cardboard = new Color32(176, 174, 165, 255);
+		private static readonly Color CardboardDark = new Color32(163, 161, 153, 255);
+		private static readonly Color Rule = new Color32(69, 68, 63, 255);
+		private static readonly Color Manila = new Color32(187, 185, 176, 255);
+		private static readonly Color ManilaLight = new Color32(198, 196, 188, 255);
+		private static readonly Color InkText = new Color32(52, 52, 49, 255);
+		private static readonly Color CreamText = new Color32(52, 52, 49, 255);
+		private static readonly Color LightText = new Color32(236, 235, 230, 255);   // text on a dark game panel   // text on frames: ink too, the frames are light
 
-		private enum Surface { None, Board, Paper, Other }   // Other: a visible image we left as the game made it
+		private enum Surface { None, Board, Paper, Other, Dark }   // Dark: a dark game panel we left alone   // Other: a visible image we left as the game made it
 
 		private static readonly Dictionary<Graphic, Color> originals = new Dictionary<Graphic, Color>();
 		private static readonly Dictionary<Image, Surface> surfaces = new Dictionary<Image, Surface>();
@@ -101,6 +105,7 @@ namespace DiegeticUIMod
 					img.color = to;
 					setTo[img] = to;
 					surfaces[img] = Surface.Paper;
+					AddRule(img);
 					continue;
 				}
 				if (c.a > 0.3f && c.a < 0.85f && Mathf.Max(c.r, Mathf.Max(c.g, c.b)) < 0.32f && !Coloured(c) && !FullScreen(img.rectTransform))
@@ -119,7 +124,7 @@ namespace DiegeticUIMod
 					float l = Lum(c);
 					// by layer: an outer frame is cardboard, anything lying on a themed surface is paper
 					Surface below = Behind(img.transform, img.rectTransform);
-					s = below == Surface.Board || below == Surface.Paper ? Surface.Paper : Surface.Board;
+					s = below == Surface.Board || below == Surface.Paper || below == Surface.Dark ? Surface.Paper : Surface.Board;
 					// a vending machine row is always paper, in every state the game gives it (selected too)
 					if (img.GetComponent<VendingMachineItemUI>() != null) s = Surface.Paper;
 					// title bars (the note's title, like the Tasks ones) are paper everywhere
@@ -132,6 +137,7 @@ namespace DiegeticUIMod
 				}
 				else if (originals.ContainsKey(img) && !setTo.ContainsKey(img)) { }
 				surfaces[img] = s;
+				if (s == Surface.Paper) AddRule(img);
 			}
 
 			SkillCards(root);
@@ -161,7 +167,7 @@ namespace DiegeticUIMod
 				// cardboard under a light coloured plate the game draws on top (the gallery's orange section
 				// headers): it reads as a light surface, so ink
 				if (under == Surface.Board && OnLightPlate(t)) under = Surface.Paper;
-				Color to = under == Surface.None ? c : (under == Surface.Paper ? InkText : CreamText);
+				Color to = under == Surface.None ? c : under == Surface.Dark ? LightText : (under == Surface.Paper ? InkText : CreamText);
 				to.a = c.a;
 				if (!Near(t.color, to)) t.color = to;
 				if (under == Surface.None) setTo.Remove(t); else setTo[t] = to;
@@ -287,7 +293,7 @@ namespace DiegeticUIMod
 			{
 				float l = Lum(img.color);
 				if (l > 0.6f) return Surface.Paper;
-				if (l < 0.32f) return Surface.Board;
+				if (l < 0.32f) return Surface.Dark;
 			}
 			return Surface.Other;
 		}
@@ -459,8 +465,29 @@ namespace DiegeticUIMod
 			return false;
 		}
 
+		// A ruled 2px edge around a paper row or card, like the cells of the game's Tenement drawing.
+		private static readonly Dictionary<Image, Outline> rules = new Dictionary<Image, Outline>();
+
+		private static void AddRule(Image img)
+		{
+			if (img == null || rules.ContainsKey(img) || img.GetComponent<Outline>() != null) return;
+			Rect r = img.rectTransform.rect;
+			if (r.width < 40f || r.height < 20f) return;
+			try
+			{
+				Outline o = img.gameObject.AddComponent<Outline>();
+				o.effectColor = Rule;
+				o.effectDistance = new Vector2(2f, -2f);
+				o.useGraphicAlpha = true;
+				rules[img] = o;
+			}
+			catch (Exception) { }
+		}
+
 		internal static void Restore()
 		{
+			foreach (var kv in rules) if (kv.Value != null) UnityEngine.Object.Destroy(kv.Value);
+			rules.Clear();
 			foreach (var kv in sprites) if (kv.Key != null) kv.Key.sprite = kv.Value;
 			sprites.Clear();
 			foreach (var kv in originals) if (kv.Key != null) kv.Key.color = kv.Value;
