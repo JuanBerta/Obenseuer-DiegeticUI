@@ -5,9 +5,11 @@ Diegetic UI
 The HUD becomes the things you carry: needs on masking tape, health and mind on needle dials, warnings as rubber stamps, a cheap LCD watch, a receipt that prints every payment, typed notification slips, luggage tags for your tools, and paper-and-cardboard menus.
 
 === FILE DESCRIPTION ===
-Obenseuer-DiegeticUI-v1.0.5.rar : Diegetic UI 1.0.5 for BepInEx 6. Extract into the Obenseuer folder.
+Obenseuer-DiegeticUI-v1.0.6.rar : Diegetic UI 1.0.6 for BepInEx 6. Extract into the Obenseuer folder.
 
 === CHANGELOG (Nexus "Changelogs" tab) ===
+1.0.6
+- Fixed: the status clipboard in menus (and the watch and receipt) covered the game's skill level-up popup. They step aside while it shows.
 1.0.5
 - Fixed: lowering Scale moved the HUD toward the middle of the screen. The HUD now stays at the screen edges at any Scale.
 - The game's look-at text (item name, amount) is lifted above the needs strip instead of hiding behind it.

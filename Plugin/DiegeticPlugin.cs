@@ -19,7 +19,7 @@ namespace DiegeticUIMod
 	public class DiegeticPlugin : BaseUnityPlugin
 	{
 		public const string Guid = "com.juanberta.obenseuer.diegeticui";
-		public const string Version = "1.0.5";
+		public const string Version = "1.0.6";
 
 		internal static ManualLogSource Log;
 		internal static ConfigEntry<bool> Enabled, ShowNeeds, ShowWallet, ShowFeed, ShowHands, RestyleMenus, PaperMenus, ThemeBank, ThemeLootMap;

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.6
+- Fixed: the status clipboard in menus (and the watch and receipt) covered the game's skill level-up popup on the right. They step aside while it shows.
+
 ## 1.0.5
 - Fixed: lowering Scale moved the HUD toward the middle of the screen. The needs strip, tags and slips now stay at the screen edges at any Scale, and the menu clipboard stays beside the inventory panel.
 - The game's look-at text (item name, amount) is lifted above the needs strip instead of hiding behind it.

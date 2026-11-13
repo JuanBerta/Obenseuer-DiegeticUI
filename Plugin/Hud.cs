@@ -31,12 +31,15 @@ namespace DiegeticUIMod
 					float gx = gutter + Mathf.Max(16f, (vw - gutter - 300f) / 2f);
 					// the game's item tooltips go on top: a piece they would overlap steps aside
 					List<Rect> tips = Tooltips(s);
+					Popups(s, tips);
 					if (DiegeticPlugin.ShowWallet.Value && !Covered(tips, new Rect(gx - 10f, 12f, 320f, 230f))) CompactWatchAndReceipt(new Vector2(gx, 22f));
 					if (DiegeticPlugin.ShowNeeds.Value && !Covered(tips, new Rect(gx - 10f, 240f, 320f, 660f))) Clipboard(new Rect(gx, 250f, 300f, 640f));
 				}
 				else
 				{
-					if (DiegeticPlugin.ShowWallet.Value) WatchAndReceipt(new Vector2(vw - m - 28f - 130f, 0f));
+					var popups = new List<Rect>();
+					Popups(s, popups);
+					if (DiegeticPlugin.ShowWallet.Value && !Covered(popups, new Rect(vw - m - 28f - 150f, 0f, 200f, 230f))) WatchAndReceipt(new Vector2(vw - m - 28f - 130f, 0f));
 					if (DiegeticPlugin.ShowNeeds.Value)
 					{
 						float bottom = vh - DiegeticPlugin.BottomMargin.Value;
@@ -86,6 +89,47 @@ namespace DiegeticUIMod
 			}
 			catch (Exception) { }
 			return tipRects;
+		}
+
+		// The game's skill level-up popup (right side): pieces it would overlap step aside while it shows.
+		private static readonly List<UnityEngine.UI.Graphic> popupGraphics = new List<UnityEngine.UI.Graphic>();
+		private static UnityEngine.Object popupOwner;
+		private static float nextPopupScan;
+
+		private static void Popups(float s, List<Rect> into)
+		{
+			try
+			{
+				PlayerSkillIncreaseUI ui = PlayerSkillIncreaseUI.instance;
+				if (ui == null || !ui.isActiveAndEnabled) return;
+				if (!ReferenceEquals(ui, popupOwner) || Time.unscaledTime >= nextPopupScan)
+				{
+					popupOwner = ui;
+					nextPopupScan = Time.unscaledTime + 0.5f;
+					popupGraphics.Clear();
+					ui.GetComponentsInChildren(false, popupGraphics);
+				}
+				var corners = new Vector3[4];
+				bool any = false;
+				float x0 = float.MaxValue, y0 = float.MaxValue, x1 = float.MinValue, y1 = float.MinValue;
+				foreach (UnityEngine.UI.Graphic g in popupGraphics)
+				{
+					if (g == null || !g.enabled || !g.gameObject.activeInHierarchy) continue;
+					if (g.color.a * g.canvasRenderer.GetInheritedAlpha() < 0.05f) continue;
+					RectTransform rt = g.rectTransform;
+					rt.GetWorldCorners(corners);
+					Canvas canvas = g.canvas;
+					Camera cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+					Vector2 a = RectTransformUtility.WorldToScreenPoint(cam, corners[0]), b = RectTransformUtility.WorldToScreenPoint(cam, corners[2]);
+					float w = Mathf.Abs(b.x - a.x), h = Mathf.Abs(b.y - a.y);
+					if (w < 2f || h < 2f || w > Screen.width * 0.8f) continue;   // skip empty and full-screen pieces
+					any = true;
+					x0 = Mathf.Min(x0, Mathf.Min(a.x, b.x)); x1 = Mathf.Max(x1, Mathf.Max(a.x, b.x));
+					y0 = Mathf.Min(y0, Screen.height - Mathf.Max(a.y, b.y)); y1 = Mathf.Max(y1, Screen.height - Mathf.Min(a.y, b.y));
+				}
+				if (any) into.Add(new Rect(x0 / s, y0 / s, (x1 - x0) / s, (y1 - y0) / s));
+			}
+			catch (Exception) { }
 		}
 
 		private static bool Covered(List<Rect> tips, Rect r)
